@@ -6,6 +6,9 @@ All notable changes to this project are recorded here. The format follows Keep a
 
 ### Added
 
+- The tool set grew to 24. Nine more named read tools joined the twelve foundation reads. product sales prices, invoice balance, purchase order detail, delivery note detail, delivery note shipments, supplier detail, webhooks, one webhook, and webhook event types. Every path is grounded in the knowledge base, so coverage now spans the order to cash and procure to pay flows plus webhooks. 21 named reads, 2 spec inventory helpers, and 1 guarded generic request.
+- A guarded generic write path. `xentral_request` moved from GET only to a guarded write, off by default. GET is always allowed. POST, PATCH, and PUT are allowed only when the server starts with `XENTRAL_MCP_READONLY=false`, and DELETE also needs `XENTRAL_MCP_ALLOW_DELETE=true`. A disallowed method returns a structured error and never calls the API. The path must be relative, start with `/api/`, and be present in the spec for that method. Full URLs, protocol relative forms, and path traversal are refused. A 429 rate limit retries once after a short backoff. Writes stay off by default because a PATCH on a sales order replaces its full line item list, so a caller must send the existing line item ids to keep them.
+- A deep test suite. 152 unit cases at 100 percent line and function coverage on the Node built-in test runner, a 33 case offline adversarial suite over the SSRF, path, read only, and delete guards that proves hostile input never crashes the server or leaks the token, a 7 case protocol conformance suite over all 24 tools, a 15 case worker suite over the crypto, the consent page, and the config helpers, a live sweep over all 194 GET operations with zero client side errors, and a 32 case live stress suite over pagination bounds, the 100 per minute rate limit and 429 handling, response truncation, and request timeout. `npm test` runs the offline bundle, `npm run test:live` runs the live bundle against a real instance.
 - OAuth least friction hosted layer (Phase C2). The Worker is its own authorization server via `@cloudflare/workers-oauth-provider` (0.8.1). A person connects an MCP client to `/mcp`, signs in once on a light consent page, and enters their Xentral host and Personal Access Token. The token is verified live, encrypted with AES-256-GCM (WebCrypto, per record 12-byte IV, keyed by the `TOKEN_ENCRYPTION_KEY` secret), and stored in the OAuth grant, so the client no longer sends a token per request. `src/crypto.ts` holds the encrypt and decrypt and a non-reversible instance user id. `src/oauth/consent.ts` renders the consent page. `src/oauth/authorize.ts` runs the `/authorize` flow. The raw token is never stored and never logged. Revoke by removing the authorization in the client and deleting the token in Xentral.
 - `wrangler.jsonc` gains the `OAUTH_KV` namespace binding for the OAuth token store. `src/env.d.ts` declares `OAUTH_KV`, `OAUTH_PROVIDER`, and `TOKEN_ENCRYPTION_KEY` on the Worker `Env`.
 
@@ -22,6 +25,11 @@ All notable changes to this project are recorded here. The format follows Keep a
 ### Changed
 
 - Split `config.ts`. Previously it mixed the pure config type with Node env loading. Now `config.ts` is pure and transport agnostic (`XentralConfig`, `resolveBaseUrl`, `buildConfig`), and the Node env loading moved to `config-env.ts` (`loadConfigFromEnv`, `resolveBaseUrlFromEnv`). This lets the same tools run under both the Node stdio server and the Cloudflare Worker runtime, which has no `node:fs`, `node:readline`, or `process.env`.
+
+### Fixed
+
+- `formatResponse` returned a value that threw on a 204 no content body. It now returns null, found by the test suite.
+- A scheme-less host string built an invalid URL. A bare host now gets `https` prepended, found by the test suite.
 
 ## [0.1.0] 2026-07-07
 
