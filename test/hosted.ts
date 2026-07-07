@@ -10,7 +10,7 @@
  * "Ready on" line, runs the cases, and kills the wrangler and workerd children
  * on the way out so nothing is left running and the port is freed.
  *
- * Credentials come from the environment only. XENTRAL_TOKEN and XENTRAL_DEMO_URL
+ * Credentials come from the environment only. XENTRAL_TOKEN and XENTRAL_API_URL
  * must be set by the caller. The raw token is never written to a file, never
  * logged, and never echoed. The demo host is not hardcoded here.
  *
@@ -45,10 +45,10 @@ const REDIRECT_URI = "http://127.0.0.1:9999/callback";
 const HTTP_TIMEOUT_MS = 20000;
 
 const TOKEN = process.env.XENTRAL_TOKEN ?? "";
-const DEMO_URL = process.env.XENTRAL_DEMO_URL ?? "";
+const DEMO_URL = process.env.XENTRAL_API_URL ?? "";
 if (TOKEN.trim() === "" || DEMO_URL.trim() === "") {
   process.stderr.write(
-    "hosted ERROR. XENTRAL_TOKEN and XENTRAL_DEMO_URL must be set in the environment.\n",
+    "hosted ERROR. XENTRAL_TOKEN and XENTRAL_API_URL must be set in the environment.\n",
   );
   process.exit(1);
 }
