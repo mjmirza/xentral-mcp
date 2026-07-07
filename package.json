@@ -1,0 +1,53 @@
+{
+  "name": "xentral-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for the Xentral ERP API. Read-only tools over a local stdio transport.",
+  "type": "module",
+  "bin": {
+    "xentral-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.json",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx test/smoke.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "xentral",
+    "erp",
+    "claude",
+    "ai-agent",
+    "dach"
+  ],
+  "author": "Mirza Iqbal",
+  "license": "MIT",
+  "homepage": "https://github.com/mjmirza/xentral-mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mjmirza/xentral-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mjmirza/xentral-mcp/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^17.4.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
