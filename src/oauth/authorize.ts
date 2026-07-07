@@ -41,7 +41,18 @@ function decodeAuthRequest(b64: string): AuthRequest {
 function htmlResponse(body: string, status = 200): Response {
   return new Response(body, {
     status,
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      // Enterprise-grade page hardening for the consent and authorize surface.
+      // The page uses only inline style, so a strict CSP with no script, no
+      // framing, and self-only form posting closes clickjacking and injection.
+      "Content-Security-Policy":
+        "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+      "X-Frame-Options": "DENY",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+      "Cache-Control": "no-store",
+    },
   });
 }
 

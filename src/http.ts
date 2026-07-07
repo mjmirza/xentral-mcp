@@ -45,6 +45,27 @@ function buildQueryString(query: Record<string, QueryValue> | undefined): string
   return s ? `?${s}` : "";
 }
 
+/** Hard ceiling on the response body read, independent of the output cap. The
+ * output cap (maxResponseChars) trims the formatted text, but only after the
+ * whole body is buffered. A hostile or misbehaving upstream returning a huge
+ * body would exhaust memory before that trim. This bounds the read itself. */
+const MAX_RESPONSE_BYTES = 25 * 1024 * 1024;
+
+/** Read a response body up to a hard byte cap. A declared over-cap length is
+ * refused before any read; otherwise the body is buffered and the byte length
+ * is checked, so a chunked response that lies about its size is still bounded. */
+async function readBodyCapped(res: Response, maxBytes: number): Promise<string> {
+  const declared = res.headers.get("content-length");
+  if (declared && Number(declared) > maxBytes) {
+    throw new Error(`Response content-length ${declared} exceeds the ${maxBytes} byte cap and was refused.`);
+  }
+  const text = await res.text();
+  if (text.length > maxBytes) {
+    throw new Error(`Response body exceeded the ${maxBytes} byte cap and was refused.`);
+  }
+  return text;
+}
+
 /**
  * Perform a single request against the Xentral instance.
  * The token is never logged and any occurrence in an error body is redacted.
@@ -63,9 +84,8 @@ export async function xentralRequest(
 
   let bodyInit: string | undefined;
   if (opts.body !== undefined && opts.body !== null) {
-    if (!headers["Content-Type"] && !headers["content-type"]) {
-      headers["Content-Type"] = "application/json";
-    }
+    const hasContentType = Object.keys(headers).some((k) => k.toLowerCase() === "content-type");
+    if (!hasContentType) headers["Content-Type"] = "application/json";
     bodyInit = typeof opts.body === "string" ? opts.body : JSON.stringify(opts.body);
   }
 
@@ -82,8 +102,13 @@ export async function xentralRequest(
   };
 
   let res: Response;
+  let rawText: string;
   try {
     res = await fetch(url, requestInit); // BESTPRACTICE_OK: timeout applied via requestInit.signal = AbortSignal.timeout above
+    // The body read stays inside this try so a timeout or abort that fires while
+    // the body is still streaming (headers arrived fast, body is slow or large)
+    // is classified as a timeout and redacted, not surfaced as a raw error.
+    rawText = await readBodyCapped(res, MAX_RESPONSE_BYTES);
   } catch (err) {
     const name = err instanceof Error ? err.name : "Error";
     if (name === "TimeoutError" || name === "AbortError") {
@@ -103,7 +128,6 @@ export async function xentralRequest(
     });
   }
 
-  const rawText = await res.text();
   const contentType = res.headers.get("content-type") ?? "";
   const paginationHeader = res.headers.get("x-pagination") ?? undefined;
 
@@ -118,11 +142,14 @@ export async function xentralRequest(
 
   if (!res.ok) {
     const bodyText = typeof data === "string" ? data : JSON.stringify(data);
+    // Redact BEFORE slicing. Slicing first could cut a token in half at the
+    // window boundary so the redactor never matches it. Redact an 8KB window
+    // (any token sits near the start of an error body) then trim for display.
     throw new XentralApiError({
       status: res.status,
       path: opts.path,
       method: opts.method,
-      body: redactSecrets(bodyText.slice(0, 2000), cfg.token),
+      body: redactSecrets(bodyText.slice(0, 8192), cfg.token).slice(0, 2000),
     });
   }
 

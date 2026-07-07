@@ -82,10 +82,17 @@ export async function decryptToken(encoded: string, secret: string): Promise<str
   if (!record.iv || !record.ciphertext) {
     throw new Error("Stored token record is missing a field.");
   }
-  const iv = base64ToBytes(record.iv);
-  const ciphertext = base64ToBytes(record.ciphertext);
-  const plainBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
-  return DEC.decode(plainBuffer);
+  // Guard the decode and decrypt. A present-but-non-base64 iv or ciphertext, a
+  // wrong key, or a tampered auth tag must surface a clean, uniform error, not a
+  // raw runtime throw. The uniform message also avoids leaking which check failed.
+  try {
+    const iv = base64ToBytes(record.iv);
+    const ciphertext = base64ToBytes(record.ciphertext);
+    const plainBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+    return DEC.decode(plainBuffer);
+  } catch {
+    throw new Error("Stored token record could not be decrypted (malformed, wrong key, or tampered).");
+  }
 }
 
 /**

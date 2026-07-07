@@ -12,6 +12,8 @@
  * only the host, no version segment.
  */
 
+import { assertSafeBaseUrl } from "./security.js";
+
 export interface Config {
   /** Instance host base, e.g. https://acme.xentral.biz. No trailing slash, no version. */
   baseUrl: string;
@@ -81,6 +83,11 @@ export interface BuildConfigInput {
   maxResponseChars?: number;
   readonly?: boolean;
   allowDelete?: boolean;
+  /** Allow an http (cleartext) host. Off by default, for a local instance only. */
+  allowInsecureHttp?: boolean;
+  /** Allow a private, loopback, or IP-literal host. Off by default, for a
+   * trusted internal instance only. */
+  allowPrivateHost?: boolean;
 }
 
 /**
@@ -100,6 +107,14 @@ export function buildConfig(input: BuildConfigInput): Config {
   if (token === "") {
     throw new Error("Missing token. Provide a Personal Access Token.");
   }
+
+  // Host safety, the SSRF and cleartext-credential guard. Applied to every
+  // Config, stdio and worker, so a tenant-supplied or mis-set host can never
+  // point the Bearer token at an internal, loopback, or http destination.
+  assertSafeBaseUrl(baseUrl, {
+    allowInsecureHttp: input.allowInsecureHttp,
+    allowPrivateHost: input.allowPrivateHost,
+  });
 
   const timeoutMs =
     input.timeoutMs && input.timeoutMs > 0 ? input.timeoutMs : DEFAULT_TIMEOUT_MS;

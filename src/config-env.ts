@@ -61,5 +61,7 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv): Config {
     maxResponseChars: parseIntEnv(env.XENTRAL_MAX_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS),
     readonly: parseBoolEnv(env.XENTRAL_MCP_READONLY, true),
     allowDelete: parseBoolEnv(env.XENTRAL_MCP_ALLOW_DELETE, false),
+    allowInsecureHttp: parseBoolEnv(env.XENTRAL_ALLOW_INSECURE_HTTP, false),
+    allowPrivateHost: parseBoolEnv(env.XENTRAL_ALLOW_PRIVATE_HOST, false),
   });
 }

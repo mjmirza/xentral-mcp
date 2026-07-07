@@ -33,8 +33,13 @@ export class XentralApiError extends Error {
  */
 export function redactSecrets(text: string, token: string): string {
   let out = text;
-  if (token && token.length >= 6) {
+  // Redact any realistic token (4+ chars covers every real PAT while never
+  // mangling a short numeric field). Also redact a url-encoded occurrence, since
+  // an error body can echo the value in encoded form.
+  if (token && token.length >= 4) {
     out = out.split(token).join("[REDACTED]");
+    const enc = encodeURIComponent(token);
+    if (enc !== token) out = out.split(enc).join("[REDACTED]");
   }
   out = out.replace(/(Bearer\s+)[A-Za-z0-9._\-]+/gi, "$1[REDACTED]");
   return out;

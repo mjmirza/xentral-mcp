@@ -45,11 +45,73 @@ export function normalizePath(input: string): string {
   if (path.includes("..")) {
     throw new Error("Path traversal (..) is not allowed.");
   }
+  // Encoded traversal and separator smuggling. A percent-encoded dot (%2e),
+  // slash (%2f), or a backslash can rebuild a traversal or escape the /api/
+  // prefix after the server decodes it. Refuse them up front (defense in depth,
+  // on top of the spec-existence check the generic tool also applies).
+  if (/%2e|%2f|%5c/i.test(path) || path.includes("\\")) {
+    throw new Error("Path contains an encoded traversal or separator (%2e, %2f, %5c, or a backslash).");
+  }
   if (!path.startsWith("/api/")) {
     throw new Error("Path must start with /api/ (for example /api/v2/products).");
   }
 
   return path;
+}
+
+/** Policy for which instance hosts are permitted. Both default off, so the
+ * safe posture (https only, public host only) applies unless an operator opts
+ * in for a genuine local or internal instance. */
+export interface HostPolicy {
+  allowInsecureHttp?: boolean;
+  allowPrivateHost?: boolean;
+}
+
+/** True when the host is a loopback, private, link-local, or bare IP literal.
+ * A real Xentral instance is always a public domain, never an IP literal, so
+ * every IP literal is blocked by default. This is the SSRF egress guard for the
+ * tenant-supplied base URL on the hosted worker, and for a mis-set stdio host. */
+function isBlockedHost(host: string): boolean {
+  const h = host.toLowerCase().replace(/^\[|\]$/g, "");
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) {
+    return true;
+  }
+  // IPv6 literal. Any colon-bearing host is an IPv6 address literal.
+  if (h.includes(":")) return true;
+  // IPv4 literal. Four dotted decimal octets.
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return true;
+  return false;
+}
+
+/**
+ * Assert that a normalized base URL is safe to send a credential to. Rejects a
+ * userinfo host-spoof (user:pass@host), a cleartext http host (a PAT must not
+ * travel unencrypted), and a private, loopback, link-local, or IP-literal host
+ * (SSRF, an authenticated open proxy from the worker egress). Each block has an
+ * explicit opt-in for a genuine local or internal deployment.
+ */
+export function assertSafeBaseUrl(baseUrl: string, policy: HostPolicy = {}): void {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    throw new Error("Instance host is not a valid URL.");
+  }
+  if (url.username !== "" || url.password !== "") {
+    throw new Error("Instance host must not contain userinfo. A user:pass@host form is refused (host-spoof guard).");
+  }
+  if (url.protocol !== "https:") {
+    if (!(policy.allowInsecureHttp && url.protocol === "http:")) {
+      throw new Error(
+        "Instance host must use https so the token is not sent in cleartext. Set XENTRAL_ALLOW_INSECURE_HTTP=1 for a local instance only.",
+      );
+    }
+  }
+  if (!policy.allowPrivateHost && isBlockedHost(url.hostname)) {
+    throw new Error(
+      `Instance host ${url.hostname} is a loopback, private, link-local, or IP-literal address and is refused (SSRF guard). Set XENTRAL_ALLOW_PRIVATE_HOST=1 for a trusted internal instance.`,
+    );
+  }
 }
 
 /** Uppercase and validate an HTTP method. */
