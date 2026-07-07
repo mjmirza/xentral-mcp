@@ -24,6 +24,17 @@ import { xentralRequest, type QueryValue } from "../http.js";
 import { formatResponse } from "../format.js";
 
 const PAGE_SIZE_MAX = 50;
+const PAGE_SIZE_MIN = 10;
+const PAGE_SIZE_DEFAULT = 10;
+const PAGE_NUMBER_DEFAULT = 1;
+
+/**
+ * The V1 and V2 list endpoints require page[number] and page[size] to be sent
+ * TOGETHER. Sending one without the other returns a 400. The API also rejects
+ * page[size] below 10 with "The page.size must be at least 10.". So the server
+ * always emits both keys and clamps the size into the 10 to 50 range. A caller
+ * asking for fewer than 10 is silently raised to 10, never rejected.
+ */
 
 /** Shared input shape for list tools. */
 const listInput = {
@@ -39,7 +50,9 @@ const listInput = {
     .min(1)
     .max(PAGE_SIZE_MAX)
     .optional()
-    .describe(`Rows per page, 1 to ${PAGE_SIZE_MAX}. Maps to page[size]. Default is the API default.`),
+    .describe(
+      `Rows per page. Maps to page[size]. The API accepts ${PAGE_SIZE_MIN} to ${PAGE_SIZE_MAX}. A value below ${PAGE_SIZE_MIN} is silently raised to ${PAGE_SIZE_MIN}. Default ${PAGE_SIZE_DEFAULT}.`,
+    ),
   query: z
     .string()
     .optional()
@@ -64,12 +77,18 @@ const detailInput = {
 type ListArgs = { page?: number; pageSize?: number; query?: string; verbose?: boolean };
 type DetailArgs = { id: string; verbose?: boolean };
 
-/** Build V1 and V2 bracket pagination query. Filter keys are enumerated per
- * resource in the spec, so a generic filter is not built here. */
+/** Build V1 and V2 bracket pagination query. Both page[number] and page[size]
+ * are always emitted together because the API rejects one without the other,
+ * and the size is clamped into the 10 to 50 range the API allows. Filter keys
+ * are enumerated per resource in the spec, so a generic filter is not built
+ * here. */
 function buildListQuery(args: ListArgs): Record<string, QueryValue> {
   const q: Record<string, QueryValue> = {};
-  if (args.page !== undefined) q["page[number]"] = args.page;
-  if (args.pageSize !== undefined) q["page[size]"] = args.pageSize;
+  const number = args.page !== undefined && args.page > 0 ? args.page : PAGE_NUMBER_DEFAULT;
+  const requested = args.pageSize !== undefined ? args.pageSize : PAGE_SIZE_DEFAULT;
+  const size = Math.min(PAGE_SIZE_MAX, Math.max(PAGE_SIZE_MIN, requested));
+  q["page[number]"] = number;
+  q["page[size]"] = size;
   if (args.query !== undefined && args.query !== "") q["search"] = args.query;
   return q;
 }
@@ -83,7 +102,10 @@ function errorResult(err: unknown) {
   return { content: [{ type: "text" as const, text: `Error. ${message}` }], isError: true };
 }
 
-/** Register one list tool at a fixed path. */
+/** Register one list tool at a fixed path. An optional accept overrides the
+ * request Accept header for endpoints that do not serve plain application/json
+ * (for example the V1 invoices list serves application/vnd.xentral.minimal+json
+ * only, so plain application/json returns a 406). */
 function registerList(
   server: McpServer,
   cfg: Config,
@@ -91,13 +113,20 @@ function registerList(
   title: string,
   description: string,
   path: string,
+  accept?: string,
 ): void {
   server.registerTool(
     name,
     { title, description, inputSchema: listInput },
     async (args: ListArgs) => {
       try {
-        const res = await xentralRequest(cfg, { method: "GET", path, query: buildListQuery(args) });
+        const headers = accept ? { Accept: accept } : undefined;
+        const res = await xentralRequest(cfg, {
+          method: "GET",
+          path,
+          query: buildListQuery(args),
+          headers,
+        });
         const verbose = args.verbose ?? false;
         return textResult(formatResponse(res.data, { verbose, maxChars: cfg.maxResponseChars }));
       } catch (err) {
@@ -215,8 +244,9 @@ export function registerReadTools(server: McpServer, cfg: Config): void {
     cfg,
     "xentral_list_invoices",
     "List invoices",
-    "Read only. List invoices from GET /api/v1/invoices (stable). V3 alternative GET /api/v3/invoices. For the open amount of one invoice, use xentral_request against /api/v1/invoices/{id}/balance.",
+    "Read only. List invoices from GET /api/v1/invoices (stable). This endpoint serves application/vnd.xentral.minimal+json only, so the tool sends that Accept header. Plain application/json returns a 406. V3 alternative GET /api/v3/invoices. For the open amount of one invoice, use xentral_request against /api/v1/invoices/{id}/balance.",
     "/api/v1/invoices",
+    "application/vnd.xentral.minimal+json",
   );
   registerDetail(
     server,

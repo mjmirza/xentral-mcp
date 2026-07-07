@@ -19,7 +19,9 @@ export interface ValidationResult {
   status?: number;
 }
 
-const PROBE_PATH = "/api/v2/products?page[size]=1";
+// The probe must carry page[number] and page[size] together, and the size must
+// be at least 10, or the API returns a 400 rather than proving reachability.
+const PROBE_PATH = "/api/v2/products?page[number]=1&page[size]=10";
 const PROBE_TIMEOUT_MS = 12000;
 
 /**

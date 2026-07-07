@@ -20,6 +20,7 @@
     "typecheck": "tsc --noEmit",
     "typecheck:worker": "tsc -p tsconfig.worker.json",
     "smoke": "tsx test/smoke.ts",
+    "live": "tsx test/live.ts",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
