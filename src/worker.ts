@@ -6,8 +6,11 @@
  * deployment.
  *
  * Phase C1, header method, on /direct. Each request carries the tenant's
- * Xentral host and Personal Access Token as request headers, so nothing is
- * stored. Good for headless and CI.
+ * Xentral host and Personal Access Token as request headers. The MCP session
+ * persists its props on the Durable Object, so the token is encrypted first
+ * (AES-256-GCM) and only the ciphertext is stored at rest, same as the OAuth
+ * method. The raw token lives only in memory for the request. Good for
+ * headless and CI.
  *
  * Phase C2, OAuth method, on /mcp. The Worker is its own authorization server
  * via `@cloudflare/workers-oauth-provider`. A person signs in once through a
@@ -32,7 +35,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { buildConfig, resolveBaseUrl } from "./config.js";
 import type { XentralConfig } from "./config.js";
 import { registerXentralTools } from "./tools/register.js";
-import { decryptToken } from "./crypto.js";
+import { decryptToken, encryptToken } from "./crypto.js";
 import { handleAuthorizeGet, handleAuthorizePost } from "./oauth/authorize.js";
 
 // Mirrors package.json. Bump both together.
@@ -40,9 +43,11 @@ const VERSION = "0.1.0";
 
 /**
  * Per session credentials carried on the execution context props.
- * The header method sets `token` (the raw PAT from a request header). The OAuth
- * method sets `encToken` (the AES-256-GCM encrypted PAT from the grant). The
- * session decrypts on demand, so the raw token exists only in memory.
+ * Both methods set `encToken`, the AES-256-GCM encrypted PAT. The header method
+ * encrypts the raw PAT from the request header before it becomes a prop. The
+ * OAuth method takes the encrypted PAT from the grant. The session decrypts on
+ * demand, so the raw token exists only in memory and never at rest. The plain
+ * `token` field remains only as a defensive fallback that no live path sets.
  */
 export interface Props extends Record<string, unknown> {
   baseUrl: string;
@@ -91,7 +96,7 @@ export class XentralMCP extends McpAgent<Env, unknown, Props> {
 }
 
 /** Read the Xentral host and token from the request headers (header method). */
-function readTenantCreds(request: Request): Props | null {
+function readTenantCreds(request: Request): { baseUrl: string; token: string } | null {
   const auth = request.headers.get("Authorization") ?? "";
   const bearer = /^Bearer\s+(.+)$/i.exec(auth.trim());
   const token = bearer ? bearer[1].trim() : "";
@@ -166,8 +171,14 @@ const defaultHandler = {
         );
       }
       // Hand the per tenant credentials to the MCP agent. McpAgent.serve reads
-      // ctx.props and sets them on the Durable Object session.
-      (ctx as ExecutionContext & { props?: Props }).props = creds;
+      // ctx.props and persists them on the Durable Object session, so the raw
+      // token is encrypted first. Both methods then store only AES-256-GCM
+      // ciphertext at rest, and init decrypts on demand.
+      const encToken = await encryptToken(creds.token, env.TOKEN_ENCRYPTION_KEY);
+      (ctx as ExecutionContext & { props?: Props }).props = {
+        baseUrl: creds.baseUrl,
+        encToken,
+      };
       return XentralMCP.serve("/direct", { binding: "XENTRAL_MCP" }).fetch(request, env, ctx); // BESTPRACTICE_OK: delegates to the MCP handler, not a network fetch call.
     }
 

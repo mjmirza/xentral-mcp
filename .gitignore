@@ -10,3 +10,4 @@ dist/
 .wrangler/
 worker-configuration.d.ts
 test/reports/
+.dev.vars

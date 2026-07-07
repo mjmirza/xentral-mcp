@@ -131,7 +131,7 @@ The smoke test starts the built server over stdio and asserts every tool registe
 
 ## Hosted option
 
-If you would rather not run the local stdio server, a hosted Cloudflare Worker is an alternative. It speaks the MCP Streamable HTTP transport, offers a Personal Access Token header method for direct calls, and an OAuth consent flow that signs a person in once and stores each tenant token encrypted at rest with AES-256-GCM. See `PROJECT_STRUCTURE.md` for the detail.
+If you would rather not run the local stdio server, a hosted Cloudflare Worker is an alternative. It speaks the MCP Streamable HTTP transport, offers a Personal Access Token header method for direct calls, and an OAuth consent flow that signs a person in once. Both methods store the tenant token encrypted at rest with AES-256-GCM, so the raw token is never persisted. The whole hosted path is tested end to end against a real instance in the local Cloudflare runtime, both connection methods, the full OAuth flow, encryption at rest, and endpoint protection. See `PROJECT_STRUCTURE.md` for the detail.
 
 ## Testing
 

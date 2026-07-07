@@ -73,7 +73,11 @@ export async function xentralRequest(
     method: opts.method,
     headers,
     body: bodyInit,
-    redirect: "error",
+    // "manual" refuses to follow a redirect (a 3xx becomes a non 2xx we reject
+    // below), which keeps the SSRF guard intact. The workerd runtime rejects the
+    // value "error" at fetch init, so "manual" is the portable form that works
+    // under both Node and the Cloudflare Worker runtime.
+    redirect: "manual",
     signal: AbortSignal.timeout(cfg.timeoutMs),
   };
 

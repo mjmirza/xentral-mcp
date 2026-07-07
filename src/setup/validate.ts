@@ -33,7 +33,9 @@ export async function validateToken(baseUrl: string, token: string): Promise<Val
   const requestInit: RequestInit = {
     method: "GET",
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-    redirect: "error",
+    // "manual" refuses to follow a redirect and works under both Node and the
+    // Cloudflare Worker runtime. workerd rejects the value "error" at fetch init.
+    redirect: "manual",
     signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
   };
 
