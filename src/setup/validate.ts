@@ -4,7 +4,7 @@
  * session. Tolerates no network, so setup can complete offline.
  */
 
-export type ValidationOutcome =
+type ValidationOutcome =
   | "valid"
   | "unauthorized"
   | "forbidden"

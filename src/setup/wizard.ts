@@ -19,7 +19,7 @@ import {
   type ClientTarget,
 } from "./clients.js";
 
-export interface SetupFlags {
+interface SetupFlags {
   print: boolean;
   url?: string;
   id?: string;
@@ -30,7 +30,7 @@ export interface SetupFlags {
 }
 
 /** Parse setup flags from argv (after the `setup` word). */
-export function parseSetupFlags(argv: string[]): SetupFlags {
+function parseSetupFlags(argv: string[]): SetupFlags {
   const flags: SetupFlags = { print: false, yes: false, noVerify: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
