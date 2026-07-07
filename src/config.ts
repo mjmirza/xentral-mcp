@@ -1,7 +1,13 @@
 /**
- * Configuration loading for the Xentral MCP server.
+ * Pure, transport-agnostic configuration for the Xentral MCP tools.
  *
- * Reads environment variables and produces a validated Config object.
+ * This module has no dependency on any runtime builtin. It carries the
+ * config type, the base URL helpers, and a pure config builder, so the same
+ * shape works under Node (stdio) and under the Cloudflare Worker runtime.
+ * The Node env loading and env-string parsing (formerly loadConfig,
+ * parseIntEnv, parseBoolEnv) moved to config-env.ts. CODE_DELETE_OK: moved
+ * node env helpers to config-env.ts to keep this core worker-safe.
+ *
  * Version is per path (each tool carries its own /api/vN), so baseUrl is
  * only the host, no version segment.
  */
@@ -15,79 +21,86 @@ export interface Config {
   timeoutMs: number;
   /** Character cap for formatted tool responses. */
   maxResponseChars: number;
-  /** When true, only read (GET) requests are permitted. Default true in Phase A. */
+  /** When true, only read (GET) requests are permitted. Default true. */
   readonly: boolean;
 }
 
-const DEFAULT_TIMEOUT_MS = 30000;
-const DEFAULT_MAX_RESPONSE_CHARS = 20000;
+/**
+ * Alias used by the worker layer. The tools take a Config, the worker builds
+ * one per tenant, so both names point at the same pure shape.
+ */
+export type XentralConfig = Config;
+
+export const DEFAULT_TIMEOUT_MS = 30000;
+export const DEFAULT_MAX_RESPONSE_CHARS = 20000;
 
 /** Strip trailing slashes and a trailing /api segment from a base URL. */
-function normalizeBaseUrl(raw: string): string {
+export function normalizeBaseUrl(raw: string): string {
   let base = raw.trim().replace(/\/+$/, "");
   base = base.replace(/\/api$/i, "");
   return base;
 }
 
 /** Build the host base from a Xentral instance id. */
-function baseFromId(id: string): string {
+export function baseFromId(id: string): string {
   const clean = id.trim().replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
   return `https://${clean}.xentral.biz`;
 }
 
-function parseIntEnv(value: string | undefined, fallback: number): number {
-  if (!value) return fallback;
-  const n = Number.parseInt(value, 10);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-}
-
-function parseBoolEnv(value: string | undefined, fallback: boolean): boolean {
-  if (value === undefined || value === "") return fallback;
-  const v = value.trim().toLowerCase();
-  if (["0", "false", "no", "off"].includes(v)) return false;
-  if (["1", "true", "yes", "on"].includes(v)) return true;
-  return fallback;
-}
-
 /**
- * Resolve a base URL from either XENTRAL_API_URL (full host) or XENTRAL_ID.
- * Returns an empty string when neither is present, so callers can report a
- * clear setup message rather than throwing.
+ * Resolve a base URL from either a full host URL or a bare instance id.
+ * Pure. Returns an empty string when neither is present, so callers can report
+ * a clear setup message rather than throwing.
  */
-export function resolveBaseUrl(env: NodeJS.ProcessEnv): string {
-  if (env.XENTRAL_API_URL && env.XENTRAL_API_URL.trim() !== "") {
-    return normalizeBaseUrl(env.XENTRAL_API_URL);
+export function resolveBaseUrl(apiUrl?: string, id?: string): string {
+  if (apiUrl && apiUrl.trim() !== "") {
+    return normalizeBaseUrl(apiUrl);
   }
-  if (env.XENTRAL_ID && env.XENTRAL_ID.trim() !== "") {
-    return baseFromId(env.XENTRAL_ID);
+  if (id && id.trim() !== "") {
+    return baseFromId(id);
   }
   return "";
 }
 
+/** Input to buildConfig. Only baseUrl and token are required. */
+export interface BuildConfigInput {
+  baseUrl: string;
+  token: string;
+  timeoutMs?: number;
+  maxResponseChars?: number;
+  readonly?: boolean;
+}
+
 /**
- * Load config from an environment object. Throws a clear error when the
- * required host or token is missing, so the server never boots half wired.
+ * Pure config builder. Validates that a host and token are present, normalizes
+ * the host, and applies defaults. Any caller (Node env loader, worker header
+ * reader) builds a Config through this one path.
  */
-export function loadConfig(env: NodeJS.ProcessEnv): Config {
-  const baseUrl = resolveBaseUrl(env);
-  const token = (env.XENTRAL_TOKEN ?? "").trim();
+export function buildConfig(input: BuildConfigInput): Config {
+  const baseUrl = normalizeBaseUrl(input.baseUrl ?? "");
+  const token = (input.token ?? "").trim();
 
   if (baseUrl === "") {
     throw new Error(
-      "Missing instance host. Set XENTRAL_API_URL (e.g. https://acme.xentral.biz) or XENTRAL_ID. Run `xentral-mcp setup`.",
+      "Missing instance host. Provide a host like https://acme.xentral.biz or an instance id.",
     );
   }
   if (token === "") {
-    throw new Error(
-      "Missing token. Set XENTRAL_TOKEN to a Personal Access Token. Run `xentral-mcp setup`.",
-    );
+    throw new Error("Missing token. Provide a Personal Access Token.");
   }
+
+  const timeoutMs =
+    input.timeoutMs && input.timeoutMs > 0 ? input.timeoutMs : DEFAULT_TIMEOUT_MS;
+  const maxResponseChars =
+    input.maxResponseChars && input.maxResponseChars > 0
+      ? input.maxResponseChars
+      : DEFAULT_MAX_RESPONSE_CHARS;
 
   return {
     baseUrl,
     token,
-    timeoutMs: parseIntEnv(env.XENTRAL_MCP_TIMEOUT_MS, DEFAULT_TIMEOUT_MS),
-    maxResponseChars: parseIntEnv(env.XENTRAL_MAX_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS),
-    readonly: parseBoolEnv(env.XENTRAL_MCP_READONLY, true),
+    timeoutMs,
+    maxResponseChars,
+    readonly: input.readonly ?? true,
   };
 }

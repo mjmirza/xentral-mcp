@@ -6,7 +6,7 @@
 
 import { stdout } from "node:process";
 import { readFileSync, existsSync } from "node:fs";
-import { resolveBaseUrl } from "../config.js";
+import { resolveBaseUrlFromEnv } from "../config-env.js";
 import { validateToken } from "./validate.js";
 import { clientTargets } from "./clients.js";
 
@@ -43,7 +43,7 @@ export async function runDoctor(): Promise<number> {
   log("Xentral MCP doctor.");
   log();
 
-  const url = resolveBaseUrl(process.env);
+  const url = resolveBaseUrlFromEnv(process.env);
   const token = (process.env.XENTRAL_TOKEN ?? "").trim();
 
   log("Environment.");

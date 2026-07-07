@@ -18,7 +18,11 @@
   "scripts": {
     "build": "tsc && chmod +x dist/index.js",
     "typecheck": "tsc --noEmit",
+    "typecheck:worker": "tsc -p tsconfig.worker.json",
     "smoke": "tsx test/smoke.ts",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -42,12 +46,15 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "agents": "^0.17.3",
     "dotenv": "^17.4.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
     "@types/node": "^22.10.0",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.107.0"
   }
 }

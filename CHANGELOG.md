@@ -4,6 +4,16 @@ All notable changes to this project are recorded here. The format follows Keep a
 
 ## [Unreleased]
 
+### Added
+
+- Hosted Cloudflare Worker transport (Phase C1). `src/worker.ts` exposes the same read only tools over the MCP Streamable HTTP transport via the `agents` SDK `McpAgent` and a `XentralMCP` Durable Object. Per tenant credentials arrive as request headers (`X-Xentral-Url` or `X-Xentral-Id`, plus `Authorization: Bearer <PAT>`), a `GET /` health page shows setup help, and a missing credential returns 401. No credential is stored.
+- `wrangler.jsonc` Worker config with the `XENTRAL_MCP` Durable Object binding, the v1 SQLite migration, and observability. New scripts `dev`, `deploy`, and `cf-typegen`.
+- `tsconfig.worker.json` for an isolated worker typecheck under Workers runtime types, so the Node stdio build stays untouched.
+
+### Changed
+
+- Split `config.ts`. Previously it mixed the pure config type with Node env loading. Now `config.ts` is pure and transport agnostic (`XentralConfig`, `resolveBaseUrl`, `buildConfig`), and the Node env loading moved to `config-env.ts` (`loadConfigFromEnv`, `resolveBaseUrlFromEnv`). This lets the same tools run under both the Node stdio server and the Cloudflare Worker runtime, which has no `node:fs`, `node:readline`, or `process.env`.
+
 ## [0.1.0] 2026-07-07
 
 Phase A. The read only foundation.

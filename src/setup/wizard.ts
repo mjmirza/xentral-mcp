@@ -110,8 +110,8 @@ export async function runSetup(argv: string[]): Promise<number> {
   log("Xentral MCP setup.");
   log();
 
-  let url = flags.url ? resolveBaseUrl({ XENTRAL_API_URL: flags.url } as NodeJS.ProcessEnv) : "";
-  if (!url && flags.id) url = resolveBaseUrl({ XENTRAL_ID: flags.id } as NodeJS.ProcessEnv);
+  let url = flags.url ? resolveBaseUrl(flags.url) : "";
+  if (!url && flags.id) url = resolveBaseUrl(undefined, flags.id);
   let token = flags.token ?? "";
 
   const interactive = Boolean(stdin.isTTY) && !flags.yes;
@@ -123,9 +123,9 @@ export async function runSetup(argv: string[]): Promise<number> {
         log("Enter your instance URL (for example https://acme.xentral.biz) or the instance id on its own.");
         const answer = (await rl.question("Instance URL or id. ")).trim();
         if (answer.includes(".") || answer.startsWith("http")) {
-          url = resolveBaseUrl({ XENTRAL_API_URL: answer } as NodeJS.ProcessEnv);
+          url = resolveBaseUrl(answer);
         } else {
-          url = resolveBaseUrl({ XENTRAL_ID: answer } as NodeJS.ProcessEnv);
+          url = resolveBaseUrl(undefined, answer);
         }
       }
       if (!token) {

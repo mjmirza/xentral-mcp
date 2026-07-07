@@ -10,7 +10,7 @@
 import { config as loadDotenv } from "dotenv";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { loadConfig } from "./config.js";
+import { loadConfigFromEnv } from "./config-env.js";
 import { registerXentralTools } from "./tools/register.js";
 import { runSetup } from "./setup/wizard.js";
 import { runDoctor } from "./setup/doctor.js";
@@ -51,7 +51,7 @@ function printHelp(): void {
 async function runServer(): Promise<void> {
   let cfg;
   try {
-    cfg = loadConfig(process.env);
+    cfg = loadConfigFromEnv(process.env);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     process.stderr.write(`xentral-mcp. ${msg}\n`);
