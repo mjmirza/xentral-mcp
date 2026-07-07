@@ -45,6 +45,7 @@
     "url": "https://github.com/mjmirza/xentral-mcp/issues"
   },
   "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^0.8.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "agents": "^0.17.3",
     "dotenv": "^17.4.2",

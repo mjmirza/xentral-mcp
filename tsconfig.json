@@ -15,5 +15,13 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "test", "src/worker.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "src/worker.ts",
+    "src/env.d.ts",
+    "src/crypto.ts",
+    "src/oauth"
+  ]
 }

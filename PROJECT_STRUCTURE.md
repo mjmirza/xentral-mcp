@@ -10,7 +10,12 @@ xentral-mcp/
     index.ts          Entry point. shebang node. Dispatches setup, doctor, version, help, else runServer over stdio.
     config.ts         Pure, transport agnostic. XentralConfig type, resolveBaseUrl, buildConfig. No Node dependency.
     config-env.ts     Node only. loadConfigFromEnv and resolveBaseUrlFromEnv for the stdio path.
-    worker.ts         Cloudflare Worker transport (Phase C1). Streamable HTTP MCP over the same tools, per tenant creds from headers.
+    worker.ts         Cloudflare Worker entry (Phase C). OAuth provider wrapper plus the two remote methods. /mcp is OAuth, /direct is the header method.
+    crypto.ts         AES-256-GCM encrypt and decrypt of the tenant PAT via WebCrypto, plus a non-reversible instance user id.
+    env.d.ts          Worker Env augmentation. OAUTH_KV, OAUTH_PROVIDER, TOKEN_ENCRYPTION_KEY.
+    oauth/
+      consent.ts      The light, neutral consent page. Pure, escapes untrusted values, no external assets.
+      authorize.ts    The /authorize flow. Parse the request, render, verify the token live, encrypt, complete the grant.
     errors.ts         XentralApiError and redactSecrets(text, token).
     security.ts       normalizePath, normalizeMethod, isWrite. The SSRF and path guards.
     http.ts           The only file that touches credentials and the network. xentralRequest with Bearer, timeout, no redirects.
@@ -31,7 +36,7 @@ xentral-mcp/
     smoke.ts          Starts the built server over stdio and asserts every tool registers.
   .github/workflows/ci.yml   Install, typecheck, build, dead code scan.
   skills/xentral-api/         The knowledge base. The source of truth for every path.
-  wrangler.jsonc              Cloudflare Worker config. Durable Object binding XENTRAL_MCP, migrations, observability.
+  wrangler.jsonc              Cloudflare Worker config. Durable Object binding XENTRAL_MCP, the OAUTH_KV namespace, migrations, observability.
   tsconfig.worker.json        Worker typecheck config. Workers runtime types only, isolated from the Node stdio build.
 ```
 
@@ -75,27 +80,50 @@ How it works.
 - No credential is stored. Each request carries its own host and token, so one deployment serves many tenants.
 - Verified by `wrangler deploy --dry-run`. The Worker bundles with the `XENTRAL_MCP` Durable Object binding, so no Cloudflare account is needed to prove the bundle.
 
-## Phase C2. Front door OAuth, least friction method (planned)
+## Phase C2. Front door OAuth, least friction method (built)
 
-Phase C2 removes the header step for the end user, so a client connects with an OAuth sign in and a one time setup rather than sending a token on every request.
+Phase C2 removes the header step for the end user. A client connects with an OAuth sign in and a one time setup rather than sending a token on every request. Xentral has no third party OAuth, so our OAuth authorizes the user to OUR service and captures the Xentral Personal Access Token once.
 
-Building blocks.
+How it works.
 
-- `@cloudflare/workers-oauth-provider` for front door OAuth to our service, so a user authenticates to us, not to Xentral. Xentral itself offers only a Personal Access Token and no OAuth.
-- Per tenant encrypted Xentral PAT storage inside the `McpAgent` Durable Object SQLite, keyed by the OAuth user. The Worker uses the stored PAT server side to call Xentral, and the user never re sends it per session.
-- An MCP elicitation on first connect to capture the instance URL and the PAT once, then it is stored.
+- `@cloudflare/workers-oauth-provider` (version 0.8.1) wraps the whole Worker. It implements the token, registration, and metadata endpoints, checks the access token on the `/mcp` route, and hands the decrypted grant props to the MCP session.
+- The Worker is its own authorization server. `apiRoute` is `/mcp` and `apiHandler` is `XentralMCP.serve("/mcp", { binding: "XENTRAL_MCP" })`. The `defaultHandler` serves the health page, the `/authorize` consent flow, and the `/direct` header method.
+- `GET /authorize` parses the OAuth request and renders a plain consent page. The person enters their Xentral host and a Personal Access Token. `POST /authorize` verifies the token live against Xentral (`GET /api/v2/products?page[size]=1`), and only on a live valid result encrypts the token and calls `completeAuthorization` with grant props `{ baseUrl, encToken }`. The raw token is never stored and never logged.
+- The `McpAgent` reads `this.props` in `init`, decrypts the token in memory with the Worker secret, builds the same `XentralConfig`, and registers the same shared tools. The raw token exists only in memory for the session.
+
+Security.
+
+- The PAT is encrypted at rest with AES-256-GCM via WebCrypto. The key is derived from the Workers secret `TOKEN_ENCRYPTION_KEY`, set with `wrangler secret put TOKEN_ENCRYPTION_KEY` and never committed. Each record carries a random 12-byte IV and is stored as base64 `{ iv, ciphertext }`.
+- The PAT and the decrypted token are never written to a log line. Error bodies from Xentral run through `redactSecrets`.
+- The consent page is served only over the Worker (HTTPS). The token is validated live before it is stored.
+- The token is not aggregated across users. A grant is keyed by a non-reversible hash of the instance host, and only the encrypted token sits in the grant props. The non-encrypted grant metadata carries the instance host for audit, never the token.
+
+Revoke.
+
+- Revoke the authorization in the MCP client. That deletes the OAuth grant and its encrypted token from the store.
+- Also delete the Personal Access Token in the Xentral admin, so the token cannot be used anywhere.
+
+Routing note.
+
+- The provider treats any path that starts with the `apiRoute` prefix as a protected API request, matched by string prefix. Since `apiRoute` is `/mcp`, a `/mcp-direct` path would match the `/mcp` prefix and be forced through the OAuth check. The header method therefore lives at `/direct`, which the provider passes through to the default handler untouched.
+
+Set up before deploy.
+
+- `wrangler kv namespace create OAUTH_KV`, then paste the id into `wrangler.jsonc`.
+- `wrangler secret put TOKEN_ENCRYPTION_KEY` with a long random value.
+- Verified by `wrangler deploy --dry-run`. The Worker bundles with the `XENTRAL_MCP` Durable Object and the `OAUTH_KV` namespace, so no Cloudflare account is needed to prove the bundle.
 
 ## Connection paths (the max methods matrix)
 
-| Method | Transport | Auth to our service | Auth to Xentral | Phase |
-|--------|-----------|---------------------|-----------------|-------|
-| Remote plus OAuth to us | Streamable HTTP | Front door OAuth | Stored per tenant PAT | C2 |
-| Remote plus PAT header | Streamable HTTP | PAT in a request header | Same PAT to Xentral | C1 |
-| Local stdio | stdio | None, local process | PAT in env, this repo | A |
-| mcp-remote bridge | stdio to remote | Bridged to the remote OAuth | Stored per tenant PAT | C2 |
+| Method | Route | Transport | Auth to our service | Auth to Xentral | Phase |
+|--------|-------|-----------|---------------------|-----------------|-------|
+| Remote plus OAuth to us | /mcp | Streamable HTTP | Front door OAuth | Encrypted stored per tenant PAT | C2, built |
+| Remote plus PAT header | /direct | Streamable HTTP | PAT in a request header | Same PAT to Xentral | C1, built |
+| Local stdio | n/a | stdio | None, local process | PAT in env, this repo | A, built |
+| mcp-remote bridge | /mcp | stdio to remote | Bridged to the remote OAuth | Encrypted stored per tenant PAT | C2, built |
 
 ## Monetization and operational cost
 
 - The core is free and open source under MIT. The local stdio server in this repo costs nothing to run beyond the user's own machine.
-- The hosted Phase C runs on the Cloudflare free tier for a small footprint (Workers, Durable Objects, and the OAuth provider), so operational cost stays near zero at low volume and scales cheaply.
+- The hosted Phase C runs on the Cloudflare free tier for a small footprint (Workers, Durable Objects, a KV namespace, and the OAuth provider), so operational cost stays near zero at low volume and scales cheaply.
 - The buyer is a DACH Xentral agency that manages ERP for commerce clients and wants a safe, correct AI integration it can offer without building one. The paid part is the hosted multi tenant service and the setup and support, not the open core.
