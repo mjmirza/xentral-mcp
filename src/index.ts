@@ -41,7 +41,9 @@ function printHelp(): void {
       "",
       "Environment.",
       "  XENTRAL_API_URL, XENTRAL_ID, XENTRAL_TOKEN, XENTRAL_MCP_READONLY,",
-      "  XENTRAL_MCP_TIMEOUT_MS, XENTRAL_MAX_RESPONSE_CHARS.",
+      "  XENTRAL_MCP_ALLOW_DELETE, XENTRAL_MCP_TIMEOUT_MS, XENTRAL_MAX_RESPONSE_CHARS.",
+      "  Set XENTRAL_MCP_READONLY=false to allow writes. DELETE also needs",
+      "  XENTRAL_MCP_ALLOW_DELETE=true.",
       "",
     ].join("\n"),
   );
@@ -64,7 +66,8 @@ async function runServer(): Promise<void> {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  process.stderr.write(`xentral-mcp ${VERSION} ready. read only. host ${cfg.baseUrl}\n`);
+  const mode = cfg.readonly ? "read only" : cfg.allowDelete ? "writes and delete enabled" : "writes enabled";
+  process.stderr.write(`xentral-mcp ${VERSION} ready. ${mode}. host ${cfg.baseUrl}\n`);
 }
 
 async function main(): Promise<void> {

@@ -128,9 +128,14 @@ export function registerDiscoverTools(server: McpServer): void {
   );
 }
 
-/** Exposed for the generic tool to validate a path against the spec. */
-export function pathExistsForGet(path: string): boolean {
-  return endpoints.some((e) => e.method === "GET" && pathTemplateMatches(e.path, path));
+/**
+ * True when the spec inventory carries an operation for this method at a path
+ * whose template matches the concrete path. Used by the guarded generic tool
+ * to keep every method, not only GET, scoped to a real spec operation.
+ */
+export function pathExistsForMethod(path: string, method: string): boolean {
+  const m = method.toUpperCase();
+  return endpoints.some((e) => e.method.toUpperCase() === m && pathTemplateMatches(e.path, path));
 }
 
 /** Match a concrete request path against a spec template with {param} slots. */

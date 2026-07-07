@@ -60,5 +60,6 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv): Config {
     timeoutMs: parseIntEnv(env.XENTRAL_MCP_TIMEOUT_MS, DEFAULT_TIMEOUT_MS),
     maxResponseChars: parseIntEnv(env.XENTRAL_MAX_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS),
     readonly: parseBoolEnv(env.XENTRAL_MCP_READONLY, true),
+    allowDelete: parseBoolEnv(env.XENTRAL_MCP_ALLOW_DELETE, false),
   });
 }

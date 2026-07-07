@@ -21,6 +21,7 @@
     "typecheck:worker": "tsc -p tsconfig.worker.json",
     "smoke": "tsx test/smoke.ts",
     "live": "tsx test/live.ts",
+    "live:write": "tsx test/live-write.ts",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",

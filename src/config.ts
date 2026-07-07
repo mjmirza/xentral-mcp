@@ -23,6 +23,12 @@ export interface Config {
   maxResponseChars: number;
   /** When true, only read (GET) requests are permitted. Default true. */
   readonly: boolean;
+  /**
+   * When true, DELETE requests are permitted. Only takes effect when readonly
+   * is false. This is a second, explicit opt-in so a write-enabled server still
+   * refuses deletes unless the operator asked for them. Default false.
+   */
+  allowDelete: boolean;
 }
 
 /**
@@ -69,6 +75,7 @@ export interface BuildConfigInput {
   timeoutMs?: number;
   maxResponseChars?: number;
   readonly?: boolean;
+  allowDelete?: boolean;
 }
 
 /**
@@ -102,5 +109,6 @@ export function buildConfig(input: BuildConfigInput): Config {
     timeoutMs,
     maxResponseChars,
     readonly: input.readonly ?? true,
+    allowDelete: input.allowDelete ?? false,
   };
 }

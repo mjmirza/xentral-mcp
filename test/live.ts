@@ -125,11 +125,12 @@ async function main(): Promise<void> {
     }
   }
 
-  // Products, then a product detail and stock from the first id.
+  // Products, then a product detail, stock, and sales prices from the first id.
   const products = await checkList("xentral_list_products");
   const productId = firstId(products.json);
   await checkDetail("xentral_get_product", productId);
   await checkDetail("xentral_get_product_stock", productId);
+  await checkDetail("xentral_get_product_sales_prices", productId);
 
   // Customers, then a customer detail.
   const customers = await checkList("xentral_list_customers");
@@ -139,14 +140,33 @@ async function main(): Promise<void> {
   const salesOrders = await checkList("xentral_list_sales_orders");
   await checkDetail("xentral_get_sales_order", firstId(salesOrders.json));
 
-  // Invoices, then an invoice detail.
+  // Invoices, then an invoice detail and the invoice balance.
   const invoices = await checkList("xentral_list_invoices");
-  await checkDetail("xentral_get_invoice", firstId(invoices.json));
+  const invoiceId = firstId(invoices.json);
+  await checkDetail("xentral_get_invoice", invoiceId);
+  await checkDetail("xentral_get_invoice_balance", invoiceId);
 
-  // Remaining list tools.
-  await checkList("xentral_list_purchase_orders");
-  await checkList("xentral_list_delivery_notes");
-  await checkList("xentral_list_suppliers");
+  // Purchase orders list, then a purchase order detail.
+  const purchaseOrders = await checkList("xentral_list_purchase_orders");
+  await checkDetail("xentral_get_purchase_order", firstId(purchaseOrders.json));
+
+  // Delivery notes list, then a delivery note detail and its shipments.
+  const deliveryNotes = await checkList("xentral_list_delivery_notes");
+  const deliveryNoteId = firstId(deliveryNotes.json);
+  await checkDetail("xentral_get_delivery_note", deliveryNoteId);
+  await checkDetail("xentral_get_delivery_note_shipments", deliveryNoteId);
+
+  // Suppliers list, then a supplier detail.
+  const suppliers = await checkList("xentral_list_suppliers");
+  await checkDetail("xentral_get_supplier", firstId(suppliers.json));
+
+  // Webhooks list, then a webhook detail. The demo webhook list is usually
+  // empty, so the detail check is skipped when there is no id.
+  const webhooks = await checkList("xentral_list_webhooks");
+  await checkDetail("xentral_get_webhook", firstId(webhooks.json));
+
+  // Webhook event types catalog.
+  await checkList("xentral_list_webhook_event_types");
 
   // Spec index tools. list_domains takes no input, find_endpoint takes a query.
   {

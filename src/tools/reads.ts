@@ -286,4 +286,98 @@ export function registerReadTools(server: McpServer, cfg: Config): void {
     "Read only. List suppliers from GET /api/v1/suppliers. The V3 suppliers list is beta and permission gated, so this uses the stable V1 read.",
     "/api/v1/suppliers",
   );
+
+  // Supplier detail. Source path GET /api/v1/suppliers/{id} (stable).
+  registerDetail(
+    server,
+    cfg,
+    "xentral_get_supplier",
+    "Get supplier",
+    "Read only. Get one supplier from GET /api/v1/suppliers/{id}.",
+    "/api/v1/suppliers/{id}",
+  );
+
+  // Purchase order detail. Source path GET /api/v1/purchaseOrders/{id} (stable).
+  registerDetail(
+    server,
+    cfg,
+    "xentral_get_purchase_order",
+    "Get purchase order",
+    "Read only. Get one purchase order from GET /api/v1/purchaseOrders/{id}.",
+    "/api/v1/purchaseOrders/{id}",
+  );
+
+  // Delivery note detail. Source path GET /api/v1/deliveryNotes/{id} (stable).
+  registerDetail(
+    server,
+    cfg,
+    "xentral_get_delivery_note",
+    "Get delivery note",
+    "Read only. Get one delivery note document from GET /api/v1/deliveryNotes/{id}.",
+    "/api/v1/deliveryNotes/{id}",
+  );
+
+  // Delivery note shipments. Source path GET /api/v1/deliveryNotes/{id}/shipments (stable).
+  registerDetail(
+    server,
+    cfg,
+    "xentral_get_delivery_note_shipments",
+    "Get delivery note shipments",
+    "Read only. Get the shipment records for one delivery note from GET /api/v1/deliveryNotes/{id}/shipments. The id is the delivery note id.",
+    "/api/v1/deliveryNotes/{id}/shipments",
+  );
+
+  // Invoice balance. Source path GET /api/v1/invoices/{id}/balance (stable).
+  registerDetail(
+    server,
+    cfg,
+    "xentral_get_invoice_balance",
+    "Get invoice balance",
+    "Read only. Get the open amount and balance for one invoice from GET /api/v1/invoices/{id}/balance. The id is the invoice id.",
+    "/api/v1/invoices/{id}/balance",
+  );
+
+  // Product sales prices. Source path GET /api/v1/products/{id}/salesPrices (stable).
+  registerDetail(
+    server,
+    cfg,
+    "xentral_get_product_sales_prices",
+    "Get product sales prices",
+    "Read only. Get the sales prices for one product from GET /api/v1/products/{id}/salesPrices. The id is the product id. For purchase prices, use xentral_request against /api/v1/products/{id}/purchasePrices.",
+    "/api/v1/products/{id}/salesPrices",
+  );
+
+  // Webhooks list. Source path GET /api/v1/webhooks (stable). The endpoint
+  // accepts the V1 page[number] and page[size] pagination (verified live), so
+  // it is registered as a normal list tool.
+  registerList(
+    server,
+    cfg,
+    "xentral_list_webhooks",
+    "List webhooks",
+    "Read only. List configured webhooks from GET /api/v1/webhooks. Paginated with page[number] and page[size].",
+    "/api/v1/webhooks",
+  );
+
+  // Webhook detail. Source path GET /api/v1/webhooks/{id} (stable).
+  registerDetail(
+    server,
+    cfg,
+    "xentral_get_webhook",
+    "Get webhook",
+    "Read only. Get one webhook configuration from GET /api/v1/webhooks/{id}.",
+    "/api/v1/webhooks/{id}",
+  );
+
+  // Webhook event types. Source path GET /api/v1/webhookEventTypes (stable).
+  // The endpoint accepts the V1 page[] pagination (verified live), so it is a
+  // normal list tool. It returns the catalog of event ids a webhook can bind to.
+  registerList(
+    server,
+    cfg,
+    "xentral_list_webhook_event_types",
+    "List webhook event types",
+    "Read only. List the catalog of event types a webhook can bind to, from GET /api/v1/webhookEventTypes. Paginated with page[number] and page[size].",
+    "/api/v1/webhookEventTypes",
+  );
 }
