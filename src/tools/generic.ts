@@ -16,69 +16,16 @@
  * network.
  */
 
+// CODE_DELETE_OK: the local methodAllowed and requestWithRateLimitRetry moved to
+// security.checkWritePolicy and http.requestWithRateLimitRetry so the named write
+// tools share one policy and one retry. Behavior is unchanged.
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Config } from "../config.js";
-import { xentralRequest, type QueryValue, type XentralResponse } from "../http.js";
-import { XentralApiError } from "../errors.js";
+import { requestWithRateLimitRetry, type QueryValue } from "../http.js";
 import { formatResponse } from "../format.js";
-import { normalizePath, normalizeMethod, isWrite } from "../security.js";
+import { normalizePath, normalizeMethod, checkWritePolicy } from "../security.js";
 import { pathExistsForMethod } from "./discover.js";
-
-/** Backoff in milliseconds for the single 429 retry. */
-const RATE_LIMIT_RETRY_MS = 1200;
-
-/**
- * Run one request, and on a 429 rate limit wait a short backoff and try once
- * more. The HTTP layer throws a XentralApiError with a status field on any non
- * 2xx response, so a 429 is caught here by that status. Any other error, and a
- * second 429, is rethrown to the caller.
- */
-async function requestWithRateLimitRetry(
-  cfg: Config,
-  opts: Parameters<typeof xentralRequest>[1],
-): Promise<XentralResponse> {
-  try {
-    return await xentralRequest(cfg, opts);
-  } catch (err) {
-    if (err instanceof XentralApiError && err.status === 429) {
-      await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_RETRY_MS));
-      return await xentralRequest(cfg, opts);
-    }
-    throw err;
-  }
-}
-
-/** Decide whether the method is permitted under the current config. */
-function methodAllowed(method: string, cfg: Config): { ok: true } | { ok: false; reason: string } {
-  // A read method (GET, HEAD, OPTIONS) is always allowed.
-  if (!isWrite(method)) return { ok: true };
-  if (method === "DELETE") {
-    if (cfg.readonly) {
-      return {
-        ok: false,
-        reason:
-          "Method DELETE is not permitted. The server is read only. Start it with XENTRAL_MCP_READONLY=false and XENTRAL_MCP_ALLOW_DELETE=true to allow deletes.",
-      };
-    }
-    if (!cfg.allowDelete) {
-      return {
-        ok: false,
-        reason:
-          "Method DELETE is not permitted. Writes are enabled, but delete needs the extra opt-in XENTRAL_MCP_ALLOW_DELETE=true.",
-      };
-    }
-    return { ok: true };
-  }
-  // POST, PATCH, PUT.
-  if (cfg.readonly) {
-    return {
-      ok: false,
-      reason: `Method ${method} is not permitted. The server is read only. Start it with XENTRAL_MCP_READONLY=false to allow writes.`,
-    };
-  }
-  return { ok: true };
-}
 
 export function registerGenericTool(server: McpServer, cfg: Config): void {
   server.registerTool(
@@ -129,10 +76,10 @@ export function registerGenericTool(server: McpServer, cfg: Config): void {
       try {
         const method = normalizeMethod(args.method ?? "GET");
 
-        const policy = methodAllowed(method, cfg);
+        const policy = checkWritePolicy(method, cfg);
         if (!policy.ok) {
           return {
-            content: [{ type: "text" as const, text: `Error. ${policy.reason}` }],
+            content: [{ type: "text" as const, text: `Error. ${policy.reason ?? "Method not permitted."}` }],
             isError: true,
           };
         }

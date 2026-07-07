@@ -11,7 +11,7 @@ Talk to your Xentral ERP in plain language from Claude and other MCP clients. As
 - Answers from your live ERP inside your AI client. "Show me the last five sales orders" returns real rows, no tab switching.
 - Read by default, with a guarded write path. Writes are off until you turn them on, so an agent can look but changes nothing until you allow it.
 - Correct paths, not guessed ones. Every tool points at a verified endpoint from the Xentral OpenAPI specs, including the traps a naive build gets wrong (delivery notes, not the shipment level `deliveries` path).
-- Reach any of 548 operations. 24 tools cover the common cases across the order to cash and procure to pay flows plus webhooks. When you need something rarer (accounting, tax, POS), the finder tool locates the exact path and a guarded generic request calls it.
+- Reach any of 548 operations. 37 tools cover the common cases across the order to cash and procure to pay flows plus webhooks, including named write actions for creating orders, invoices, products, customers, shipments, and goods receipts. When you need something rarer (accounting, tax, POS), the finder tool locates the exact path and a guarded generic request calls it.
 - Token lean output. Responses strip empty fields so a large result does not flood your context. Ask for `verbose` when you want the full payload.
 - One command setup. `xentral-mcp setup` wires your client, checks your token against the live instance, and backs up your existing config first.
 
@@ -39,7 +39,9 @@ Agencies and operators who run Xentral for DACH commerce and want an AI assistan
 
 ## Tools in this version
 
-21 named read tools, 2 spec inventory helpers, and 1 guarded generic request. 24 in total.
+22 named read tools, 12 named write tools (off until you enable writes), 2 spec inventory helpers, and 1 guarded generic request. 37 in total.
+
+### Read tools
 
 | Tool | Reads | Path |
 |------|-------|------|
@@ -54,6 +56,7 @@ Agencies and operators who run Xentral for DACH commerce and want an AI assistan
 | `xentral_list_invoices` | invoices | `GET /api/v1/invoices` |
 | `xentral_get_invoice` | one invoice | `GET /api/v1/invoices/{id}` |
 | `xentral_get_invoice_balance` | balance for one invoice | `GET /api/v1/invoices/{id}/balance` |
+| `xentral_get_invoice_documents` | document and PDF references for one invoice | `GET /api/v1/invoices/{id}/documents` |
 | `xentral_list_purchase_orders` | purchase orders | `GET /api/v1/purchaseOrders` |
 | `xentral_get_purchase_order` | one purchase order | `GET /api/v1/purchaseOrders/{id}` |
 | `xentral_list_delivery_notes` | delivery note documents | `GET /api/v1/deliveryNotes` |
@@ -69,6 +72,29 @@ Agencies and operators who run Xentral for DACH commerce and want an AI assistan
 | `xentral_request` | a guarded request against any spec present path | guarded generic |
 
 There is no global stock list in the Xentral API, so `xentral_get_product_stock` reads stock per product and needs a product id. Sales orders, invoices, and purchase orders use the stable V1 reads. Each tool description names the newer V3 form.
+
+### Write tools
+
+These are the write actions integration users reach for most. We picked them by scouting the real Xentral connectors (the Make.com app, the n8n community node, the older n8n node), where the same core keeps appearing, then cross checked every path against the bundled spec so each tool points at a real operation. Every write tool is OFF by default. It returns a clear error and never calls the API unless the server starts with `XENTRAL_MCP_READONLY=false`. None of them use DELETE.
+
+| Tool | Does | Path |
+|------|------|------|
+| `xentral_create_sales_order` | import a new sales order (the action every shop and marketplace push uses) | `POST /api/v1/salesOrders/actions/import` |
+| `xentral_release_sales_order` | release an order for fulfillment | `PATCH /api/v3/salesOrders/{id}/actions/release` |
+| `xentral_send_sales_order` | send the order document to the customer | `PATCH /api/v3/salesOrders/{id}/actions/send` |
+| `xentral_cancel_sales_order` | cancel an order | `POST /api/v1/salesOrders/{id}/actions/cancel` |
+| `xentral_set_product_stock` | set the absolute stock at a storage location | `PATCH /api/v1/storageLocations/setTotalStock` |
+| `xentral_create_shipment` | record a shipment with tracking | `POST /api/v1/shipments` |
+| `xentral_create_invoice` | create an invoice | `POST /api/v1/invoices` |
+| `xentral_create_credit_note` | create a credit note for a refund or correction | `POST /api/v1/creditNotes` |
+| `xentral_create_product` | create a product | `POST /api/v2/products` |
+| `xentral_create_customer` | create a customer (an address with the customer role) | `POST /api/v2/customers` |
+| `xentral_create_purchase_order` | create a purchase order to a supplier | `POST /api/v1/purchaseOrders` |
+| `xentral_receive_goods` | record a goods receipt against a purchase order | `POST /api/v1/purchaseOrders/{id}/goodsReceipts` |
+
+Two traps worth stating plainly. First, `xentral_set_product_stock` sets an absolute quantity, it is not a delta and it is not a movement booking, because the API has no separate stock movement transaction endpoint. Second, `xentral_create_shipment` records tracking, it does not print a carrier label, because the API has no public label generation call. Use `xentral_get_delivery_note_shipments` to read back what was recorded.
+
+The named write tools run on the local stdio server, where you control the write flag on your own machine. The hosted worker keeps writes off, so the multi-tenant path stays read only.
 
 ### The guarded generic request
 
@@ -137,14 +163,32 @@ If you would rather not run the local stdio server, a hosted Cloudflare Worker i
 
 The test surface is stated plainly, without inflation.
 
-- Unit tests over the pure modules, 152 cases, 100 percent line and function coverage, run with the Node built-in test runner.
-- An offline adversarial suite, 33 cases, that proves the SSRF, path, read only, and delete guards, and that hostile input never crashes the server or leaks the token.
-- An MCP protocol conformance suite, 7 cases, over all 24 tools.
+- Unit tests over the pure modules and the write gate, 163 cases, run with the Node built-in test runner. Function coverage is 100 percent and line coverage is 99.78 percent. The one line the tool counts as missed is a type-only declaration that carries no runtime.
+- An offline adversarial suite, 33 cases, that proves the SSRF, path, read only, and delete guards, opens and closes the write and delete paths, and shows hostile input never crashes the server or leaks the token.
+- An MCP protocol conformance suite, 7 cases, over all 37 tools.
 - A worker suite, 15 cases, over the crypto, the consent page, and the config helpers.
 - A live endpoint sweep that calls every one of the 194 GET operations against a real instance and reports each one. Zero client side errors were found. A handful of accounting endpoints return a server side 500 on the demo instance because that module is not provisioned there, which the sweep records as an upstream fault, not a client fault.
 - A live stress suite, 32 cases, over pagination bounds, the 100 per minute rate limit and the 429 handling, response truncation, and request timeout.
 
 Run the offline bundle with `npm test`. It covers smoke, unit, protocol, worker, and aggression, and makes no live call. Run the live bundle with `npm run test:live`, which covers live, live write, sweep, and stress, and needs a real token and instance URL in the environment. The individual scripts `test:unit`, `test:aggression`, `test:protocol`, `test:worker`, `test:sweep`, `test:stress`, `live`, `live:write`, and `smoke` also exist.
+
+## Need this set up for your business?
+
+If you run Xentral and you want this connected to your own instance, or extended to your exact workflow, Nexus AI can do the setup for you. This is the paid installation and integration service behind the open tooling here. What that covers, numbered.
+
+1. Managed install and wiring. Nexus AI connects the server to your Xentral instance, verifies the token live, and wires it into your client of choice, Claude, Cursor, or any MCP client, so your team starts asking questions on day one instead of reading setup docs.
+
+2. Custom tools for your flow. The 37 tools here are the common cases. Nexus AI adds named tools for the exact endpoints you run every day, from the 548 in the spec, with the right pagination, the right content type, and the traps handled for you.
+
+3. Writes turned on safely. Creating orders, invoices, shipments, and goods receipts is off by default for good reason. Nexus AI enables the write actions you actually need, behind the same read only and delete guards, with a short review of the line item replace behavior so a PATCH never drops what you meant to keep.
+
+4. Hosted deployment. If you would rather not run a local server, Nexus AI deploys the hosted Cloudflare Worker, with the OAuth sign in and the token encrypted at rest, so your whole team connects over one URL.
+
+5. Guardrails and monitoring. SSRF and path guards, token redaction, rate limit handling, and a health check, plus the deep test suite above, so the thing that touches your ERP is one you can trust.
+
+6. Handover and training. A short session with your team on how to ask for orders, stock, invoices, and the rest in plain language, and a written runbook you keep.
+
+Want this installed, or a custom build on top? Reach out through next8n.com, describe your instance and the flows you care about, and Nexus AI will scope it with you.
 
 ## Project structure
 

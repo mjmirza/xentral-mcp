@@ -6,6 +6,8 @@
  * the configured instance only (SSRF guard).
  */
 
+import type { Config } from "./config.js";
+
 /** True when the string contains any ASCII control character or DEL. */
 function hasControlChars(s: string): boolean {
   for (let i = 0; i < s.length; i++) {
@@ -63,4 +65,52 @@ export function normalizeMethod(input: string): string {
 /** True when the method mutates state. */
 export function isWrite(method: string): boolean {
   return !["GET", "HEAD", "OPTIONS"].includes(normalizeMethod(method));
+}
+
+/** Result of a write permission check. Internal, used as the return shape of
+ * checkWritePolicy. Callers read ok and reason structurally. */
+interface WritePolicyResult {
+  ok: boolean;
+  reason?: string;
+}
+
+/**
+ * The single source of truth for whether a method is permitted under the
+ * current config. Every tool that can mutate state, the generic passthrough
+ * and each named write tool, runs its method through this one gate.
+ *
+ * Policy.
+ *   GET, HEAD, OPTIONS    always allowed.
+ *   POST, PATCH, PUT      allowed only when cfg.readonly is false.
+ *   DELETE                allowed only when cfg.readonly is false AND
+ *                         cfg.allowDelete is true.
+ */
+export function checkWritePolicy(method: string, cfg: Config): WritePolicyResult {
+  const m = normalizeMethod(method);
+  if (!isWrite(m)) return { ok: true };
+  if (m === "DELETE") {
+    if (cfg.readonly) {
+      return {
+        ok: false,
+        reason:
+          "Method DELETE is not permitted. The server is read only. Start it with XENTRAL_MCP_READONLY=false and XENTRAL_MCP_ALLOW_DELETE=true to allow deletes.",
+      };
+    }
+    if (!cfg.allowDelete) {
+      return {
+        ok: false,
+        reason:
+          "Method DELETE is not permitted. Writes are enabled, but delete needs the extra opt-in XENTRAL_MCP_ALLOW_DELETE=true.",
+      };
+    }
+    return { ok: true };
+  }
+  // POST, PATCH, PUT.
+  if (cfg.readonly) {
+    return {
+      ok: false,
+      reason: `Method ${m} is not permitted. The server is read only. Start it with XENTRAL_MCP_READONLY=false to allow writes.`,
+    };
+  }
+  return { ok: true };
 }

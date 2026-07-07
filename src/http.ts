@@ -128,3 +128,28 @@ export async function xentralRequest(
 
   return { status: res.status, data, paginationHeader };
 }
+
+/** Backoff in milliseconds for the single 429 retry. */
+const RATE_LIMIT_RETRY_MS = 1200;
+
+/**
+ * Run one request, and on a 429 rate limit wait a short backoff and try once
+ * more. The HTTP layer throws a XentralApiError with a status field on any non
+ * 2xx response, so a 429 is caught here by that status. Any other error, and a
+ * second 429, is rethrown to the caller. Shared by the generic passthrough and
+ * every named write tool so the retry lives in one place.
+ */
+export async function requestWithRateLimitRetry(
+  cfg: Config,
+  opts: XentralRequestOptions,
+): Promise<XentralResponse> {
+  try {
+    return await xentralRequest(cfg, opts);
+  } catch (err) {
+    if (err instanceof XentralApiError && err.status === 429) {
+      await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_RETRY_MS));
+      return await xentralRequest(cfg, opts);
+    }
+    throw err;
+  }
+}

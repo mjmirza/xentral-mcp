@@ -337,6 +337,16 @@ export function registerReadTools(server: McpServer, cfg: Config): void {
     "/api/v1/invoices/{id}/balance",
   );
 
+  // Invoice documents. Source path GET /api/v1/invoices/{id}/documents (stable).
+  registerDetail(
+    server,
+    cfg,
+    "xentral_get_invoice_documents",
+    "Get invoice documents",
+    "Read only. Get the document references for one invoice from GET /api/v1/invoices/{id}/documents, including any PDF references. The id is the invoice id.",
+    "/api/v1/invoices/{id}/documents",
+  );
+
   // Product sales prices. Source path GET /api/v1/products/{id}/salesPrices (stable).
   registerDetail(
     server,

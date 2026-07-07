@@ -19,7 +19,7 @@ import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 const serverEntry = join(here, "..", "dist", "index.js");
 
-const EXPECTED_TOOL_COUNT = 24;
+const EXPECTED_TOOL_COUNT = 37;
 
 interface CallResult {
   isError: boolean;
@@ -76,7 +76,7 @@ async function main(): Promise<void> {
   const listed = await client.listTools();
   const tools = listed.tools as unknown as ToolShape[];
 
-  await check("tools/list returns exactly 24 tools", () => {
+  await check("tools/list returns exactly 37 tools", () => {
     assert.equal(tools.length, EXPECTED_TOOL_COUNT, `got ${tools.length} tools`);
   });
 

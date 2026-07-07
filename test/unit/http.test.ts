@@ -1,7 +1,7 @@
 // Unit tests for src/http.ts (request building and error mapping).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { xentralRequest } from "../../src/http.js";
+import { xentralRequest, requestWithRateLimitRetry } from "../../src/http.js";
 import { XentralApiError } from "../../src/errors.js";
 import type { Config } from "../../src/config.js";
 
@@ -109,9 +109,47 @@ test("refuses redirects", async () => {
   const { capture, restore } = stubFetch(() => jsonResponse({ ok: true }));
   try {
     await xentralRequest(cfg, { method: "GET", path: "/api/v2/products" });
-    assert.equal(capture.init.redirect, "error");
+    // "manual" refuses to follow a redirect (a 3xx becomes a non 2xx the layer
+    // rejects), and unlike "error" it is accepted by the Cloudflare workerd
+    // runtime, so the same value works under Node and the Worker.
+    assert.equal(capture.init.redirect, "manual");
   } finally {
     restore();
+  }
+});
+
+test("requestWithRateLimitRetry retries once after a 429 and then succeeds", async () => {
+  let calls = 0;
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    return calls === 1 ? jsonResponse({ error: "rate limited" }, 429) : jsonResponse({ ok: true }, 200);
+  }) as typeof fetch;
+  try {
+    const res = await requestWithRateLimitRetry(cfg, { method: "GET", path: "/api/v2/products" });
+    assert.equal(calls, 2);
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.data, { ok: true });
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test("requestWithRateLimitRetry rethrows a non-429 error without retrying", async () => {
+  let calls = 0;
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    return jsonResponse({ error: "boom" }, 500);
+  }) as typeof fetch;
+  try {
+    await assert.rejects(
+      () => requestWithRateLimitRetry(cfg, { method: "GET", path: "/api/v2/products" }),
+      (err: unknown) => err instanceof XentralApiError && err.status === 500,
+    );
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = original;
   }
 });
 

@@ -37,7 +37,7 @@ Every operation requires HTTP Bearer auth. the header is `Authorization: Bearer 
 
 ## What the MCP ships today
 
-The MCP built on top of this knowledge base exposes 24 tools. 21 named read tools on grounded paths, 2 spec inventory helpers (`xentral_list_domains`, `xentral_find_endpoint`), and 1 guarded generic request (`xentral_request`). The generic request is read by default. POST, PATCH, and PUT need `XENTRAL_MCP_READONLY=false`, and DELETE also needs `XENTRAL_MCP_ALLOW_DELETE=true`. When adding a tool, ground its path, method, and version here first.
+The MCP built on top of this knowledge base exposes 37 tools. 22 named read tools on grounded paths, 12 named write tools (off by default, chosen from real connector demand and cross checked against the spec), 2 spec inventory helpers (`xentral_list_domains`, `xentral_find_endpoint`), and 1 guarded generic request (`xentral_request`). Writes are read by default. POST, PATCH, and PUT need `XENTRAL_MCP_READONLY=false`, and DELETE also needs `XENTRAL_MCP_ALLOW_DELETE=true`. Every write path runs through the one shared gate in `security.checkWritePolicy`. When adding a tool, ground its path, method, and version here first.
 
 ## Where to go next
 
