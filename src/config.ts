@@ -40,10 +40,15 @@ export type XentralConfig = Config;
 export const DEFAULT_TIMEOUT_MS = 30000;
 export const DEFAULT_MAX_RESPONSE_CHARS = 20000;
 
-/** Strip trailing slashes and a trailing /api segment from a base URL. */
+/** Strip trailing slashes and a trailing /api segment from a base URL, and add
+ * an https scheme when the caller passed a bare host with none. A scheme-less
+ * host would otherwise build an invalid request URL. */
 export function normalizeBaseUrl(raw: string): string {
   let base = raw.trim().replace(/\/+$/, "");
   base = base.replace(/\/api$/i, "");
+  if (base !== "" && !/^https?:\/\//i.test(base)) {
+    base = `https://${base}`;
+  }
   return base;
 }
 

@@ -74,7 +74,10 @@ export function formatResponse(data: unknown, opts: FormatOptions): string {
   const shaped = shape(data, opts.verbose);
   let text: string;
   try {
-    text = JSON.stringify(shaped, null, opts.verbose ? 2 : 0);
+    // JSON.stringify returns the value undefined for an undefined input (for
+    // example a 204 no content response), which is not a string. Fall back to
+    // the literal "null" so an empty body formats cleanly instead of throwing.
+    text = JSON.stringify(shaped, null, opts.verbose ? 2 : 0) ?? "null";
   } catch {
     text = String(shaped);
   }
