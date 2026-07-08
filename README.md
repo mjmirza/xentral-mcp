@@ -1,7 +1,5 @@
 # xentral-mcp
 
-**English** | [Deutsch](README.de.md)
-
 Talk to your Xentral ERP in plain language from Claude and other MCP clients. Ask for a customer, a product, an open invoice, or a sales order, and get the answer back without opening the Xentral UI or writing an API call.
 
 ![License](https://img.shields.io/badge/license-source--available-blue)
@@ -12,6 +10,8 @@ Talk to your Xentral ERP in plain language from Claude and other MCP clients. As
 > Works with Xentral®. This is an independent and unofficial connector. It is not affiliated with, endorsed by, or supported by Xentral. See the [trademark notice](docs/TRADEMARKS.md).
 >
 > Licensing in one line. This is NOT MIT and it is NOT free for business. An individual may test it for free, with visible credit. Any business or commercial use needs prior written approval from the author. It is provided as is, with no warranty and no liability, you run it at your own risk. Read the [LICENSE](LICENSE) before you use it.
+>
+> No AI cloning. Using an AI to clone, reimplement, or recreate this project is a derivative work that needs the author's written consent, see [AGENTS.md](AGENTS.md). If you want it for a business, or configured for you, contact the author through next8n.com.
 
 ## What you get
 

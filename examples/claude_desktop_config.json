@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "xentral": {
+      "command": "npx",
+      "args": ["-y", "xentral-mcp"],
+      "env": {
+        "XENTRAL_API_URL": "https://your-instance.xentral.biz",
+        "XENTRAL_TOKEN": "your-personal-access-token",
+        "XENTRAL_MCP_READONLY": "true"
+      }
+    }
+  }
+}
