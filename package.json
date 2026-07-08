@@ -12,6 +12,10 @@
     "LICENSE",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "engines": {
     "node": ">=18.18.0"
   },

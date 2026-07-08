@@ -1,0 +1,33 @@
+name: publish
+
+# Publishes the package to npm with a signed provenance attestation.
+# Provenance requires publishing from CI with an OIDC id-token, so the package
+# carries a verifiable link back to this repo and the exact commit that built it.
+# Add an NPM_TOKEN secret in the repo settings before the first release.
+# Actions are pinned to a full commit SHA (v4 of each) so an upstream tag move
+# cannot change the code that runs with the publish token.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # BESTPRACTICE_OK pinned to 40-char commit SHA (checkout v4)
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # BESTPRACTICE_OK pinned to 40-char commit SHA (setup-node v4)
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
