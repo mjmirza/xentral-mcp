@@ -37,9 +37,8 @@ import type { XentralConfig } from "./config.js";
 import { registerXentralTools } from "./tools/register.js";
 import { decryptToken, encryptToken } from "./crypto.js";
 import { handleAuthorizeGet, handleAuthorizePost } from "./oauth/authorize.js";
-
-// Mirrors package.json. Bump both together.
-const VERSION = "0.1.1";
+// COMMENT_REMOVAL_OK version now lives in one place, version.ts, shared with the bin.
+import { VERSION } from "./version.js";
 
 /**
  * Per session credentials carried on the execution context props.

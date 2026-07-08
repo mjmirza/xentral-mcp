@@ -14,6 +14,7 @@ import { validateToken } from "./validate.js";
 import {
   clientTargets,
   findClient,
+  isLikelyInstalled,
   buildServerEntry,
   mergeServerIntoConfig,
   type ClientTarget,
@@ -90,6 +91,25 @@ function envFor(url: string, token: string): Record<string, string> {
   };
 }
 
+/** Interactively pick a client, marking those that look installed. Defaults to
+ * the first target (Claude Desktop) on an empty or out-of-range answer. */
+async function pickClient(
+  rl: { question: (q: string) => Promise<string> },
+): Promise<ClientTarget> {
+  const targets = clientTargets();
+  log();
+  log("Which client should I wire Xentral into?");
+  targets.forEach((t, i) => {
+    const mark = isLikelyInstalled(t) ? "  (detected on this machine)" : "";
+    log(`  ${i + 1}. ${t.label}${mark}`);
+  });
+  log();
+  const answer = (await rl.question("Pick a number (Enter for 1, Claude Desktop). ")).trim();
+  const idx = Number.parseInt(answer, 10);
+  if (Number.isFinite(idx) && idx >= 1 && idx <= targets.length) return targets[idx - 1];
+  return targets[0];
+}
+
 /** Print the copy and paste config block for manual wiring. */
 function printBlock(target: ClientTarget, url: string, token: string): void {
   const entry = buildServerEntry(envFor(url, token), target.needsType);
@@ -113,10 +133,13 @@ export async function runSetup(argv: string[]): Promise<number> {
   let url = flags.url ? resolveBaseUrl(flags.url) : "";
   if (!url && flags.id) url = resolveBaseUrl(undefined, flags.id);
   let token = flags.token ?? "";
+  // The client chosen interactively, when neither a flag nor print mode fixed it.
+  let chosenClientId: string | undefined;
 
   const interactive = Boolean(stdin.isTTY) && !flags.yes;
+  const needClientPick = interactive && !flags.client && !flags.print;
 
-  if (interactive && (!url || !token)) {
+  if (interactive && (!url || !token || needClientPick)) {
     const rl = createInterface({ input: stdin, output: stdout });
     try {
       if (!url) {
@@ -133,6 +156,9 @@ export async function runSetup(argv: string[]): Promise<number> {
         log("Create a Personal Access Token in Xentral under Account settings, Developer Settings, Personal Access Tokens.");
         log("The token is shown once at creation and carries full permissions.");
         token = (await rl.question("Personal Access Token. ")).trim();
+      }
+      if (needClientPick) {
+        chosenClientId = (await pickClient(rl)).id;
       }
     } finally {
       rl.close();
@@ -162,7 +188,7 @@ export async function runSetup(argv: string[]): Promise<number> {
 
   // Print only mode. Show the block and stop.
   if (flags.print) {
-    const target = findClient(flags.client ?? "claude-desktop") ?? clientTargets()[0];
+    const target = findClient(flags.client ?? chosenClientId ?? "claude-desktop") ?? clientTargets()[0];
     printBlock(target, url, token);
     log(`Instance host. ${url}`);
     log(`Token. ${maskToken(token)} (stored only where you paste it).`);
@@ -170,7 +196,7 @@ export async function runSetup(argv: string[]): Promise<number> {
   }
 
   // Resolve the target client.
-  const target = findClient(flags.client ?? "claude-desktop");
+  const target = findClient(flags.client ?? chosenClientId ?? "claude-desktop");
   if (!target) {
     log(`Unknown client "${flags.client}". Known clients. ${clientTargets().map((c) => c.id).join(", ")}.`);
     return 1;

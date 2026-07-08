@@ -8,7 +8,8 @@
  */
 
 import { homedir, platform } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { existsSync } from "node:fs";
 
 export interface ClientTarget {
   id: string;
@@ -73,6 +74,17 @@ export function clientTargets(): ClientTarget[] {
 /** Look up one target by id. */
 export function findClient(id: string): ClientTarget | undefined {
   return clientTargets().find((c) => c.id === id);
+}
+
+/** True when the client's config file, or its parent app directory, exists. A
+ * good hint the client is installed, used to mark it in the interactive picker. */
+export function isLikelyInstalled(target: ClientTarget): boolean {
+  if (!target.configPath) return false;
+  try {
+    return existsSync(target.configPath) || existsSync(dirname(target.configPath));
+  } catch {
+    return false;
+  }
 }
 
 /**

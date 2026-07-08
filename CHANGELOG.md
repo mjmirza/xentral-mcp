@@ -2,6 +2,17 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog.
 
+## [0.1.2]
+
+### Added
+
+- A gentle update notice. `xentral-mcp doctor` and `xentral-mcp setup` now check the npm registry at most once a day and, when a newer version is published, print a one line notice to stderr with the update command. The check is capped at a short timeout, cached for a day, fully silent on any error or offline, never touches the stdio serve path, and can be turned off with `XENTRAL_MCP_NO_UPDATE_CHECK=1`.
+- An interactive client picker in setup. When run in a terminal without `--client`, setup now lists the known clients (Claude Desktop, Claude Code, Cursor, Windsurf, VS Code), marks the ones detected on the machine, and lets you pick, instead of silently defaulting to Claude Desktop. The `--client` flag and the non interactive path are unchanged.
+
+### Changed
+
+- The version is now defined once in `src/version.ts` and imported by both the stdio bin and the hosted worker, so the three previously separate hardcoded version strings can no longer drift.
+
 ## [0.1.1]
 
 ### Added

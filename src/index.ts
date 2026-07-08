@@ -14,9 +14,9 @@ import { loadConfigFromEnv } from "./config-env.js";
 import { registerXentralTools } from "./tools/register.js";
 import { runSetup } from "./setup/wizard.js";
 import { runDoctor } from "./setup/doctor.js";
-
-// Version is pinned here and mirrors package.json. Bump both together.
-const VERSION = "0.1.0";
+import { maybeNotifyUpdate } from "./setup/update-check.js";
+// COMMENT_REMOVAL_OK the version is no longer pinned here, it moved to version.ts.
+import { VERSION } from "./version.js";
 
 function printHelp(): void {
   process.stdout.write(
@@ -79,11 +79,15 @@ async function main(): Promise<void> {
   const command = argv[0];
 
   if (command === "setup") {
-    process.exit(await runSetup(argv.slice(1)));
+    const code = await runSetup(argv.slice(1));
+    await maybeNotifyUpdate(VERSION);
+    process.exit(code);
     return;
   }
   if (command === "doctor") {
-    process.exit(await runDoctor());
+    const code = await runDoctor();
+    await maybeNotifyUpdate(VERSION);
+    process.exit(code);
     return;
   }
   if (command === "version" || command === "--version" || command === "-v") {
