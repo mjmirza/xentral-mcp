@@ -64,6 +64,9 @@ export function registerGenericTool(server: McpServer, cfg: Config): void {
           .optional()
           .describe("When true, return the full payload. When false or absent, strip empty fields to save tokens."),
       },
+      // The method is caller-chosen and can mutate (POST/PATCH/PUT/DELETE when
+      // enabled), so this is NOT marked read-only. A client should confirm it.
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
     async (args: {
       path: string;

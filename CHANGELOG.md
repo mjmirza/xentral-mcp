@@ -2,6 +2,12 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog.
 
+## [0.1.1]
+
+### Added
+
+- MCP tool annotations on every tool. All 28 read tools declare `readOnlyHint: true` (with `idempotentHint: true`), and the 13 write and generic tools declare `readOnlyHint: false`. This is the standard signal a client (Claude Desktop and other MCP clients) uses to auto-approve safe reads instead of prompting for permission on every call, while still confirming writes. Verified live over the wire through the hosted worker against the cloud instance, 10 read tools green, the write guard still refusing under read only.
+
 ## [Unreleased]
 
 ### Added

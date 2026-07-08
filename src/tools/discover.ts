@@ -38,6 +38,7 @@ export function registerDiscoverTools(server: McpServer): void {
       description:
         "Read only. List the domains (OpenAPI tags) across all 548 Xentral operations, with a per domain count of GET, POST, PATCH, PUT, DELETE. Use this to see what areas exist, then use xentral_find_endpoint to get exact paths.",
       inputSchema: {},
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async () => {
       const byTag = new Map<string, Record<string, number>>();
@@ -88,6 +89,7 @@ export function registerDiscoverTools(server: McpServer): void {
           .optional()
           .describe("Maximum results to return. Default 50."),
       },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async (args: {
       query: string;

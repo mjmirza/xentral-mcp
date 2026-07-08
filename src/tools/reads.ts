@@ -168,7 +168,14 @@ function registerVersionedList(
 ): void {
   server.registerTool(
     name,
-    { title, description, inputSchema: withVersion(baseListInput, versions, def) },
+    {
+      title,
+      description,
+      inputSchema: withVersion(baseListInput, versions, def),
+      // Read-only. Declaring this lets a client (Claude Desktop) auto-approve the
+      // call instead of prompting for permission every time.
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
     async (rawArgs) => {
       const args = rawArgs as unknown as ListArgs;
       const r = resolveVersion(versions, def, args.version);
@@ -205,7 +212,12 @@ function registerVersionedDetail(
 ): void {
   server.registerTool(
     name,
-    { title, description, inputSchema: withVersion(baseDetailInput, versions, def) },
+    {
+      title,
+      description,
+      inputSchema: withVersion(baseDetailInput, versions, def),
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
     async (rawArgs) => {
       const args = rawArgs as unknown as DetailArgs;
       const r = resolveVersion(versions, def, args.version);
@@ -233,7 +245,12 @@ function registerSubDetail(
 ): void {
   server.registerTool(
     name,
-    { title, description, inputSchema: baseDetailInput },
+    {
+      title,
+      description,
+      inputSchema: baseDetailInput,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
     async (args: DetailArgs) => {
       try {
         const path = pathTemplate.replace("{id}", encodeURIComponent(args.id));
@@ -257,7 +274,12 @@ function registerSubList(
 ): void {
   server.registerTool(
     name,
-    { title, description, inputSchema: baseListInput },
+    {
+      title,
+      description,
+      inputSchema: baseListInput,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
     async (args: ListArgs) => {
       try {
         const res = await requestWithRateLimitRetry(cfg, { method: "GET", path, query: buildQueryV1V2(args) });

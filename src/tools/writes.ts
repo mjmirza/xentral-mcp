@@ -67,7 +67,14 @@ function registerWrite(server: McpServer, cfg: Config, spec: WriteSpec): void {
 
   server.registerTool(
     spec.name,
-    { title: spec.title, description: spec.description, inputSchema },
+    {
+      title: spec.title,
+      description: spec.description,
+      inputSchema,
+      // A write. Not read-only, so a client should still confirm it. These are
+      // creates and state changes (POST/PATCH), never a hard delete.
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
     async (args: CreateArgs | ActionArgs) => {
       // The one gate. A write returns a clear error and never calls the network
       // unless the server was started write enabled.
