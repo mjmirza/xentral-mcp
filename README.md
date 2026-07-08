@@ -78,6 +78,10 @@ flowchart LR
 
 Agencies and operators who run Xentral for DACH commerce and want an AI assistant that can read the ERP safely. The tooling is source-available. An individual may test it for free with credit. Any business or commercial use needs prior written approval from the author, see the [LICENSE](LICENSE). The value is a grounded, correct, guard-rail-wrapped integration that a stranger can install in five minutes, and a paid service that will stand it up for your business.
 
+## Can I self-host Xentral and point this at it?
+
+No. Modern Xentral is cloud-only, and the only self-hostable option is OpenXE, the old community fork, which speaks a different API generation (HTTP Digest, not Bearer). This MCP cannot talk to it. If that is what you were about to try, read the full write-up first and save yourself the time, see [xentral-self-hosting-lessons](https://github.com/mjmirza/xentral-self-hosting-lessons). Use a modern Xentral cloud account with a Personal Access Token for this MCP.
+
 ## Tools in this version
 
 22 named read tools, 12 named write tools (off until you enable writes), 2 spec inventory helpers, and 1 guarded generic request. 37 in total.
