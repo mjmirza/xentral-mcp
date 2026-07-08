@@ -11,3 +11,4 @@ dist/
 worker-configuration.d.ts
 test/reports/
 .dev.vars
+.claude/

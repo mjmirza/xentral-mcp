@@ -7,7 +7,7 @@ import { redactSecrets } from "../../src/errors.js";
 // assertSafeBaseUrl. the SSRF and cleartext-credential guard.
 test("assertSafeBaseUrl allows a public https host", () => {
   assert.doesNotThrow(() => assertSafeBaseUrl("https://acme.xentral.biz"));
-  assert.doesNotThrow(() => assertSafeBaseUrl("https://6a4cfc178e809.demo.xentral.com"));
+  assert.doesNotThrow(() => assertSafeBaseUrl("https://acme.xentral.biz"));
 });
 
 test("assertSafeBaseUrl blocks cleartext http unless opted in", () => {

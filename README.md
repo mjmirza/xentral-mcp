@@ -2,9 +2,14 @@
 
 Talk to your Xentral ERP in plain language from Claude and other MCP clients. Ask for a customer, a product, an open invoice, or a sales order, and get the answer back without opening the Xentral UI or writing an API call.
 
-![License](https://img.shields.io/github/license/mjmirza/xentral-mcp)
+![License](https://img.shields.io/badge/license-source--available-blue)
 ![Version](https://img.shields.io/github/package-json/v/mjmirza/xentral-mcp)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.18-brightgreen)
+![Works with](https://img.shields.io/badge/works%20with-Xentral%C2%AE-orange)
+
+> Works with Xentral®. This is an independent and unofficial connector. It is not affiliated with, endorsed by, or supported by Xentral. See the [trademark notice](docs/TRADEMARKS.md).
+>
+> Licensing in one line. This is NOT MIT and it is NOT free for business. An individual may test it for free, with visible credit. Any business or commercial use needs prior written approval from the author. It is provided as is, with no warranty and no liability, you run it at your own risk. Read the [LICENSE](LICENSE) before you use it.
 
 ## What you get
 
@@ -33,9 +38,45 @@ Confirm health any time.
 npx xentral-mcp doctor
 ```
 
+## What it looks like in practice
+
+You ask in plain language. The connector calls the verified endpoint, attaches your token over TLS, and hands back real rows. No tab switching, no API code.
+
+```text
+You:  Show me the last three sales orders from Xentral.
+
+xentral-mcp  ->  GET /api/v1/salesOrders   (verified path, read only, token attached)
+
+Claude:
+  #  Order      Customer          Date         Net        Status
+  1  SO-10482   Muster GmbH       2026-07-06   1,240.00   released
+  2  SO-10481   Beispiel AG       2026-07-05     380.50   open
+  3  SO-10480   Test Handel KG    2026-07-05   2,905.00   shipped
+```
+
+Turn writes on and the same plain language creates records, behind the guards.
+
+```text
+You:  Create a sales order for customer 4471, 3 units of SKU A-100.
+
+xentral-mcp  ->  POST /api/v1/salesOrders/actions/import   (write path, only when you enable it)
+
+Claude:  Done. Order SO-10483 created, status open. Want me to release it?
+```
+
+How the pieces fit together.
+
+```mermaid
+flowchart LR
+  A["You, in plain language"] --> B["MCP client<br/>Claude, Cursor, Windsurf, VS Code"]
+  B --> C["xentral-mcp<br/>read by default, guarded writes"]
+  C -->|"verified path + Bearer token over TLS"| D[("Your Xentral ERP")]
+  C -. "SSRF guard, path guard, token redaction, size cap" .-> C
+```
+
 ## Who is this for
 
-Agencies and operators who run Xentral for DACH commerce and want an AI assistant that can read the ERP safely. The core is free and open source. The value is a grounded, correct, guard rail wrapped integration that a stranger can install in five minutes.
+Agencies and operators who run Xentral for DACH commerce and want an AI assistant that can read the ERP safely. The tooling is source-available. An individual may test it for free with credit. Any business or commercial use needs prior written approval from the author, see the [LICENSE](LICENSE). The value is a grounded, correct, guard-rail-wrapped integration that a stranger can install in five minutes, and a paid service that will stand it up for your business.
 
 ## Tools in this version
 
@@ -154,6 +195,9 @@ The smoke test starts the built server over stdio and asserts every tool registe
 - Method guard. A disallowed method returns a structured error and never calls the API.
 - Path guard. The generic tool accepts a relative `/api/` path only, rejects a full URL, protocol relative form, and path traversal, and refuses any path that is not present in the spec for the method (SSRF guard).
 - Secret hygiene. The token is never logged, and any occurrence in an error body is redacted.
+- Tokens at rest. On the hosted path the token is encrypted with AES-256-GCM before storage, never persisted in plain text.
+
+The full posture, the threat model, encryption at rest, the SSRF and path defenses, and the responsibilities that stay with you are documented in the [security policy](.github/SECURITY.md).
 
 ## Hosted option
 
@@ -194,6 +238,13 @@ Want this installed, or a custom build on top? Reach out through next8n.com, des
 
 See `PROJECT_STRUCTURE.md` for the folder layout, the hosted deployment, the write phase, and the cost model.
 
-## License
+## License and credit
 
-MIT. See `LICENSE`.
+Source-available under the [Xentral-MCP Source-Available License](LICENSE). This is not MIT and not open source. In short.
+
+- An individual may download, run, and test it for free, with visible credit to the author.
+- Business use, production use, and any commercial deployment need prior written approval from the author. Request it through next8n.com.
+- Credit is mandatory in every use. Keep the copyright line and the notices intact.
+- Provided as is, with no warranty and no liability. You run it at your own risk, and every action an agent takes against your data is your responsibility.
+
+"Xentral" is a trademark of its owner. This project is independent, unofficial, and not endorsed by Xentral. See [trademarks and attribution](docs/TRADEMARKS.md).
