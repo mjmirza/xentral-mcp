@@ -39,7 +39,7 @@ import { decryptToken, encryptToken } from "./crypto.js";
 import { handleAuthorizeGet, handleAuthorizePost } from "./oauth/authorize.js";
 
 // Mirrors package.json. Bump both together.
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 
 /**
  * Per session credentials carried on the execution context props.
