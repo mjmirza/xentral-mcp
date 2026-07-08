@@ -15,12 +15,14 @@
 export interface ConsentPageInput {
   /** The registered client name, shown so the person knows who is asking. */
   clientName: string;
-  /** Base64 of the parsed OAuth request, carried back on submit. */
+  /** Base64url of the parsed OAuth request, carried back on submit. */
   oauthRequestB64: string;
   /** Prefilled instance host, if the person is re-submitting after an error. */
   instanceValue: string;
   /** A message shown when a previous submit failed, already human readable. */
   errorMessage?: string;
+  /** A per-response CSP nonce so the one small loading script may run. */
+  nonce?: string;
 }
 
 /** Escape a string for safe placement in HTML text or an attribute value. */
@@ -106,9 +108,27 @@ const STYLE = `
     border: 1px solid #1a5d38;
     border-radius: 8px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
   }
   button:hover { background: #1a5d38; }
   button:focus-visible { outline: 2px solid #0d3a22; outline-offset: 2px; }
+  button[disabled] { background: #3f7d5b; border-color: #3f7d5b; cursor: progress; opacity: 0.92; }
+  .spinner {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    display: none;
+  }
+  button.loading .spinner { display: inline-block; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    button.loading .spinner { animation: none; }
+  }
 `;
 
 /**
@@ -122,6 +142,13 @@ export function renderConsentPage(input: ConsentPageInput): string {
   const instanceValue = escapeHtml(input.instanceValue || "");
   const errorBlock = input.errorMessage
     ? `<div class="error" role="alert">${escapeHtml(input.errorMessage)}</div>`
+    : "";
+  // The one small script shows a loading state on submit and blocks a double
+  // submit. It runs only under the per-response CSP nonce. Without a nonce it is
+  // omitted, and the form still works as a plain post, just with no spinner.
+  const nonce = input.nonce ? escapeHtml(input.nonce) : "";
+  const loadingScript = nonce
+    ? `<script nonce="${nonce}">(function(){var f=document.getElementById('consent-form');var b=document.getElementById('submit-btn');if(!f||!b)return;f.addEventListener('submit',function(){if(b.dataset.sent==='1'){return;}b.dataset.sent='1';b.disabled=true;b.classList.add('loading');var l=document.getElementById('btn-label');if(l){l.textContent='Verifying your token';}});})();</script>`
     : "";
 
   return `<!doctype html>
@@ -137,7 +164,7 @@ export function renderConsentPage(input: ConsentPageInput): string {
     <h1>Connect Xentral</h1>
     <p class="lead"><span class="who">${clientName}</span> wants to read data from your Xentral instance. Enter your instance host and a Personal Access Token to allow it.</p>
     ${errorBlock}
-    <form method="post" action="/authorize" autocomplete="off">
+    <form id="consent-form" method="post" action="/authorize" autocomplete="off">
       <input type="hidden" name="oauth_req" value="${oauthReq}" />
       <label for="instance">Xentral instance host</label>
       <input id="instance" name="instance" type="text" inputmode="url" placeholder="https://acme.xentral.biz" value="${instanceValue}" required autofocus />
@@ -148,9 +175,10 @@ export function renderConsentPage(input: ConsentPageInput): string {
       <div class="privacy">
         Your token is verified once, then stored encrypted at rest and used only to call your own Xentral. It is not shared and it is never combined with other accounts. Remove access at any time by revoking this authorization in your client and deleting the token in your Xentral admin.
       </div>
-      <button type="submit">Authorize</button>
+      <button id="submit-btn" type="submit"><span class="spinner" aria-hidden="true"></span><span id="btn-label">Authorize</span></button>
     </form>
   </main>
+  ${loadingScript}
 </body>
 </html>`;
 }

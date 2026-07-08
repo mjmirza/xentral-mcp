@@ -2,6 +2,16 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog.
 
+## [0.1.3]
+
+### Fixed
+
+- The hosted OAuth consent page failed on submit. Two causes, both fixed. First, the parsed OAuth request was carried in the form as standard base64, whose `+` characters could turn into spaces in a form post, so the read-back threw and the page showed "the authorization request expired" in a loop. It now uses URL-safe base64url, which carries through a form field unchanged, and the reader also accepts a legacy value and re-pads defensively. Second, the POST handler had no error boundary, so a throw while reaching the instance, encrypting, completing the grant, or redirecting dropped the connection (ERR_CONNECTION_CLOSED). Every step is now guarded and returns a clear page instead of closing the connection. Validated live end to end against a cloud instance across the happy path plus bad token, unreachable host, empty fields, corrupted request, and garbage request, all handled with a visible message and no crash.
+
+### Added
+
+- A loading state on the consent page. On submit the Authorize button shows a spinner, changes to "Verifying your token", and blocks a double submit, so the page no longer feels dead while the token is verified. It runs under a per-response CSP nonce, and the form still works as a plain post if the script is blocked. Reduced motion is respected.
+
 ## [0.1.2]
 
 ### Added
