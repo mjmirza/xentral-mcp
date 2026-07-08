@@ -205,7 +205,7 @@ The full posture, the threat model, encryption at rest, the SSRF and path defens
 
 ## Hosted option
 
-If you would rather not run the local stdio server, a hosted Cloudflare Worker is an alternative. It speaks the MCP Streamable HTTP transport, offers a Personal Access Token header method for direct calls, and an OAuth consent flow that signs a person in once. Both methods store the tenant token encrypted at rest with AES-256-GCM, so the raw token is never persisted. The whole hosted path is tested end to end against a real instance in the local Cloudflare runtime, both connection methods, the full OAuth flow, encryption at rest, and endpoint protection. See `PROJECT_STRUCTURE.md` for the detail.
+If you would rather not run the local stdio server, a hosted Cloudflare Worker is an alternative. It speaks the MCP Streamable HTTP transport, offers a Personal Access Token header method for direct calls, and an OAuth consent flow that signs a person in once. Both methods store the tenant token encrypted at rest with AES-256-GCM, so the raw token is never persisted. The whole hosted path is tested end to end against a real instance in the local Cloudflare runtime, both connection methods, the full OAuth flow, encryption at rest, and endpoint protection. See `docs/PROJECT_STRUCTURE.md` for the detail.
 
 ## Testing
 
@@ -240,7 +240,7 @@ Want this installed, or a custom build on top? Reach out through next8n.com, des
 
 ## Project structure
 
-See `PROJECT_STRUCTURE.md` for the folder layout, the hosted deployment, the write phase, and the cost model.
+See `docs/PROJECT_STRUCTURE.md` for the folder layout, the hosted deployment, the write phase, and the cost model.
 
 ## License and credit
 
