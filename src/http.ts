@@ -14,7 +14,7 @@
  */
 
 import type { Config } from "./config.js";
-import { XentralApiError, redactSecrets } from "./errors.js";
+import { XentralApiError, redactSecrets, parseRetryAfterMs } from "./errors.js";
 
 export type QueryValue = string | number | boolean | undefined | null;
 
@@ -38,7 +38,9 @@ function buildQueryString(query: Record<string, QueryValue> | undefined): string
   if (!query) return "";
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
-    if (value === undefined || value === null || value === "") continue;
+    // Skip only unset values. An explicit empty string is a valid filter value
+    // (some endpoints treat it as a selector), so it is sent, not dropped.
+    if (value === undefined || value === null) continue;
     params.append(key, String(value));
   }
   const s = params.toString();
@@ -51,19 +53,50 @@ function buildQueryString(query: Record<string, QueryValue> | undefined): string
  * body would exhaust memory before that trim. This bounds the read itself. */
 const MAX_RESPONSE_BYTES = 25 * 1024 * 1024;
 
-/** Read a response body up to a hard byte cap. A declared over-cap length is
- * refused before any read; otherwise the body is buffered and the byte length
- * is checked, so a chunked response that lies about its size is still bounded. */
+/** Number of bytes a string occupies as UTF-8. */
+function utf8ByteLength(s: string): number {
+  return new TextEncoder().encode(s).byteLength;
+}
+
+/** Read a response body up to a hard BYTE cap. A declared over-cap length is
+ * refused before any read. The body is then read from the stream chunk by chunk
+ * with a running byte total, and the read is cancelled the moment the total
+ * exceeds the cap, so a chunked response that lies about its size can never
+ * buffer past the cap into memory. Falls back to text() only when no stream is
+ * exposed by the runtime, where the declared-length check still bounds it. */
 async function readBodyCapped(res: Response, maxBytes: number): Promise<string> {
   const declared = res.headers.get("content-length");
   if (declared && Number(declared) > maxBytes) {
     throw new Error(`Response content-length ${declared} exceeds the ${maxBytes} byte cap and was refused.`);
   }
-  const text = await res.text();
-  if (text.length > maxBytes) {
-    throw new Error(`Response body exceeded the ${maxBytes} byte cap and was refused.`);
+  if (!res.body) {
+    const text = await res.text();
+    if (utf8ByteLength(text) > maxBytes) {
+      throw new Error(`Response body exceeded the ${maxBytes} byte cap and was refused.`);
+    }
+    return text;
   }
-  return text;
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read(); // BESTPRACTICE_OK sequential stream read, each chunk depends on the previous
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel(); // BESTPRACTICE_OK one-shot cancel on cap breach, then throw, not a repeated await
+      throw new Error(`Response body exceeded the ${maxBytes} byte cap and was refused.`);
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.byteLength;
+  }
+  return new TextDecoder().decode(out);
 }
 
 /**
@@ -131,7 +164,9 @@ export async function xentralRequest(
   const contentType = res.headers.get("content-type") ?? "";
   const paginationHeader = res.headers.get("x-pagination") ?? undefined;
 
-  let data: unknown = rawText;
+  // An empty body (a 204 no content, or an empty 200) becomes null, not "", so a
+  // caller gets a clean absence rather than an empty-string value to reason about.
+  let data: unknown = rawText.trim() === "" ? null : rawText;
   if (contentType.includes("json") && rawText.trim() !== "") {
     try {
       data = JSON.parse(rawText);
@@ -150,14 +185,17 @@ export async function xentralRequest(
       path: opts.path,
       method: opts.method,
       body: redactSecrets(bodyText.slice(0, 8192), cfg.token).slice(0, 2000),
+      retryAfterMs: parseRetryAfterMs(res.headers.get("retry-after"), Date.now()),
     });
   }
 
   return { status: res.status, data, paginationHeader };
 }
 
-/** Backoff in milliseconds for the single 429 retry. */
+/** Default backoff for the single 429 retry when the server sends no Retry-After. */
 const RATE_LIMIT_RETRY_MS = 1200;
+/** Never wait longer than this on a 429, even if Retry-After asks for more. */
+const RATE_LIMIT_MAX_WAIT_MS = 60_000;
 
 /**
  * Run one request, and on a 429 rate limit wait a short backoff and try once
@@ -174,7 +212,12 @@ export async function requestWithRateLimitRetry(
     return await xentralRequest(cfg, opts);
   } catch (err) {
     if (err instanceof XentralApiError && err.status === 429) {
-      await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_RETRY_MS));
+      // Honor a server Retry-After when present, capped, otherwise a short
+      // default. Add small jitter so many clients do not retry in lockstep. A
+      // 429 means the request was rejected, so retrying it once is safe.
+      const base = Math.min(err.retryAfterMs ?? RATE_LIMIT_RETRY_MS, RATE_LIMIT_MAX_WAIT_MS);
+      const wait = base + Math.floor(Math.random() * 250); // BESTPRACTICE_OK jitter, not a security-sensitive random
+      await new Promise((resolve) => setTimeout(resolve, wait));
       return await xentralRequest(cfg, opts);
     }
     throw err;

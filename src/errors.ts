@@ -7,6 +7,8 @@ export interface XentralApiErrorInit {
   path: string;
   method: string;
   body?: string;
+  /** Parsed Retry-After from a 429, in milliseconds, when the server sent one. */
+  retryAfterMs?: number;
 }
 
 /** Thrown by the HTTP layer on a non 2xx response. Body is already redacted. */
@@ -15,6 +17,7 @@ export class XentralApiError extends Error {
   readonly path: string;
   readonly method: string;
   readonly body: string;
+  readonly retryAfterMs?: number;
 
   constructor(init: XentralApiErrorInit) {
     const summary = `Xentral API ${init.method} ${init.path} failed with ${init.status}`;
@@ -24,7 +27,19 @@ export class XentralApiError extends Error {
     this.path = init.path;
     this.method = init.method;
     this.body = init.body ?? "";
+    this.retryAfterMs = init.retryAfterMs;
   }
+}
+
+/** Parse a Retry-After header value (seconds, or an HTTP date) into milliseconds.
+ * Returns undefined when absent or unparseable. */
+export function parseRetryAfterMs(value: string | null, nowMs: number): number | undefined {
+  if (!value) return undefined;
+  const seconds = Number(value.trim());
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
+  const when = Date.parse(value);
+  if (Number.isFinite(when)) return Math.max(0, when - nowMs);
+  return undefined;
 }
 
 /**

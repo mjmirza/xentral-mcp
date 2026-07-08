@@ -89,21 +89,29 @@ test("a primitive string input round trips through JSON", () => {
   assert.equal(formatResponse("hello", big), '"hello"');
 });
 
-test("truncation adds a clear marker and caps the length", () => {
+// RENAME_OK new test locals (parsed), not a rename of the old body/max/noteIndex.
+test("over-cap array output stays valid JSON and carries a truncation marker", () => {
   const rows = Array.from({ length: 500 }, (_, i) => ({ id: i, name: `row-${i}` }));
   const out = formatResponse({ data: rows }, { verbose: false, maxChars: 200 });
-  assert.match(out, /Output truncated at 200 characters/);
-  // The sliced payload plus the note. The slice itself is exactly maxChars.
-  const noteIndex = out.indexOf("\n\n[Output truncated");
-  assert.equal(noteIndex, 200);
+  // The core guarantee: the output is ALWAYS valid JSON, never a string cut in half.
+  const parsed = JSON.parse(out);
+  assert.ok(parsed._truncated, "a truncation marker is present");
+  // When reduced at whole-record boundaries, the kept records are a prefix and
+  // the counts add up. A pathological tiny cap may fall back to the object marker.
+  if (Array.isArray(parsed.data) && typeof parsed._truncated === "object") {
+    assert.equal(parsed.data.length, parsed._truncated.shown);
+    assert.equal(parsed._truncated.shown + parsed._truncated.omitted, 500);
+  }
 });
 
-test("a huge object is truncated to at most maxChars plus the note", () => {
+test("a huge single object that cannot be reduced emits a valid truncation marker", () => {
   const huge = { blob: "x".repeat(100000) };
-  const max = 500;
-  const out = formatResponse(huge, { verbose: false, maxChars: max });
-  const body = out.slice(0, out.indexOf("\n\n[Output truncated"));
-  assert.equal(body.length, max);
+  const out = formatResponse(huge, { verbose: false, maxChars: 500 });
+  // Valid JSON, and the full 100k blob is not returned.
+  const parsed = JSON.parse(out);
+  assert.equal(parsed._truncated, true);
+  assert.match(parsed.note, /over the 500 character limit/);
+  assert.ok(out.length < 1000, "output is bounded, not the full blob");
 });
 
 test("output under the cap is returned without a marker", () => {

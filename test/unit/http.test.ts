@@ -67,7 +67,7 @@ test("percent encodes bracket query keys", async () => {
   }
 });
 
-test("skips undefined, null and empty query values", async () => {
+test("skips undefined and null query values but keeps an explicit empty string", async () => {
   const { capture, restore } = stubFetch(() => jsonResponse({ ok: true }));
   try {
     await xentralRequest(cfg, {
@@ -78,7 +78,9 @@ test("skips undefined, null and empty query values", async () => {
     assert.match(capture.url, /a=keep/);
     assert.ok(!capture.url.includes("b="));
     assert.ok(!capture.url.includes("c="));
-    assert.ok(!capture.url.includes("d="));
+    // An explicit empty string is a valid selector for some endpoints, so it is
+    // sent as d= (present, empty), not dropped.
+    assert.match(capture.url, /(\?|&)d=(&|$)/);
   } finally {
     restore();
   }
@@ -343,13 +345,13 @@ test("a timeout is wrapped with a clear timeout message", async () => {
   }
 });
 
-test("an empty JSON body response falls back to the raw text", async () => {
+test("an empty JSON body response becomes null, not an empty string", async () => {
   const { restore } = stubFetch(
     () => new Response("", { status: 200, headers: { "content-type": "application/json" } }),
   );
   try {
     const res = await xentralRequest(cfg, { method: "GET", path: "/api/v2/x" });
-    assert.equal(res.data, "");
+    assert.equal(res.data, null);
   } finally {
     restore();
   }

@@ -143,7 +143,7 @@ export async function handleAuthorizePost(request: Request, env: Env): Promise<R
   }
 
   const encToken = await encryptToken(tokenField, env.TOKEN_ENCRYPTION_KEY);
-  const userId = await userIdForInstance(baseUrl);
+  const userId = await userIdForInstance(baseUrl, tokenField);
 
   const { redirectTo } = await env.OAUTH_PROVIDER.completeAuthorization({
     request: authReq,

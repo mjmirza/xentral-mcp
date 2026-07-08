@@ -72,6 +72,10 @@ const baseListInput = {
       `Rows per page. For v1 and v2 the API accepts ${PAGE_SIZE_MIN} to ${PAGE_SIZE_MAX} and a value below ${PAGE_SIZE_MIN} is raised to ${PAGE_SIZE_MIN}. For v3 up to ${V3_PER_PAGE_MAX}. Default ${PAGE_SIZE_DEFAULT}.`,
     ),
   query: z.string().optional().describe("Optional free text passed as the search parameter. Best effort, some endpoints ignore it."),
+  paginationMode: z
+    .enum(["simple", "table", "cursor"])
+    .optional()
+    .describe("v3 only. simple (default) is lightest. table also returns the total row count for total-based paging. cursor for keyset paging. Ignored for v1 and v2."),
   verbose: z.boolean().optional().describe("When true, return the full payload. When false or absent, strip empty fields to save tokens."),
 };
 
@@ -84,6 +88,7 @@ interface ListArgs {
   page?: number;
   pageSize?: number;
   query?: string;
+  paginationMode?: "simple" | "table" | "cursor";
   verbose?: boolean;
   version?: Version;
 }
@@ -173,7 +178,7 @@ function registerVersionedList(
         const query = isV3 ? buildQueryV3(args) : buildQueryV1V2(args);
         const headers: Record<string, string> = {};
         if (r.spec.accept) headers.Accept = r.spec.accept;
-        if (isV3) headers["X-Pagination"] = "simple";
+        if (isV3) headers["X-Pagination"] = args.paginationMode ?? "simple";
         const res = await requestWithRateLimitRetry(cfg, {
           method: "GET",
           path: r.spec.path,

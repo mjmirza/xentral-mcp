@@ -36,9 +36,16 @@ disrupting your client. Each one is addressed below.
 ## Tokens at rest are encrypted (hosted option)
 
 - On the hosted Cloudflare path, your Personal Access Token is encrypted with
-  AES-256-GCM using WebCrypto before it is written to storage.
+  AES-256-GCM using WebCrypto before it is written to storage, with a fresh 12
+  byte IV per record.
 - The encryption key is a server secret, set out of band, and is never placed in
-  the repository or in any config file.
+  the repository or in any config file. It is run through HKDF-SHA-256 (a real
+  key derivation function) with a fixed salt and info label to derive the AES key,
+  and a secret shorter than 32 characters is refused up front, so a weak key
+  cannot be set.
+- Each grant is keyed by the instance host and a one-way fingerprint of the token,
+  so two distinct tokens on the same instance get separate grants and never
+  overwrite one another.
 - A stored record that is malformed, tampered with, or encrypted under a
   different key fails closed with a clear error rather than leaking anything.
 - You can revoke the authorization in your client at any time, which deletes the
@@ -55,7 +62,24 @@ disrupting your client. Each one is addressed below.
   the connector into a probe of your internal network. Opt-in flags exist for the
   narrow cases where a private host is genuinely intended.
 - Path handling rejects traversal attempts, including percent-encoded and
-  backslash forms, so a tool argument cannot climb outside the intended API path.
+  backslash forms, and a query or fragment in the path, so a tool argument cannot
+  climb outside the intended API path or smuggle a second query onto the URL.
+- The outbound fetch never follows a redirect (`redirect: "manual"`), so a 3xx to
+  an internal host cannot be used to pivot.
+
+### Residual risk, DNS rebinding on the hosted path
+
+The check above validates the hostname you supply, not the IP address it resolves
+to. A hostname that passes the check could, in principle, resolve to a private or
+loopback address (DNS rebinding). This matters only on the multi tenant hosted
+worker, where the instance host is supplied by an untrusted tenant. On the local
+stdio path the host is your own and trusted, so there is nothing to rebind.
+
+If you run the hosted worker for untrusted tenants, place a hard network egress
+control in front of it, an egress firewall or an allowlist of known Xentral
+hostnames or IP ranges, so the platform, not only the hostname check, bounds where
+the worker can connect. The hostname check is defense in depth. The network egress
+control is the layer that closes this gap.
 
 ## Secrets are redacted from errors and logs
 

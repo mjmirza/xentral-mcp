@@ -54,8 +54,9 @@ test("normalizePath rejects encoded traversal and separators", () => {
   }
 });
 
-test("normalizePath still allows a clean api path with brackets and query", () => {
-  assert.equal(normalizePath("/api/v2/products?page[size]=10"), "/api/v2/products?page[size]=10");
+test("normalizePath allows a clean api path with brackets but rejects an inline query", () => {
+  assert.equal(normalizePath("/api/v2/products/filter[0][key]"), "/api/v2/products/filter[0][key]");
+  assert.throws(() => normalizePath("/api/v2/products?page[size]=10"), /query .*\?.* or fragment/i);
 });
 
 // redactSecrets. shorter tokens and url-encoded occurrences.

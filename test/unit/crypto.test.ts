@@ -3,8 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { encryptToken, decryptToken, userIdForInstance } from "../../src/crypto.js";
 
-// A high entropy machine secret. Any non empty string works, the module
-// takes its SHA-256 digest as the AES key.
+// A high entropy machine secret. It must be at least 32 chars, the module runs
+// it through HKDF-SHA-256 to derive the AES key.
 const SECRET = "test-secret-value-with-plenty-of-entropy-0123456789";
 const OTHER_SECRET = "a-different-machine-secret-abcdefghijklmnop";
 
@@ -68,6 +68,13 @@ test("encrypt with an empty secret throws a setup error", async () => {
   await assert.rejects(() => encryptToken("x", "   "), /Missing TOKEN_ENCRYPTION_KEY/);
 });
 
+test("encrypt with a too-short secret is refused", async () => {
+  await assert.rejects(() => encryptToken("x", "short-secret"), /too short/);
+  // Exactly one under the minimum is refused, exactly the minimum is accepted.
+  await assert.rejects(() => encryptToken("x", "a".repeat(31)), /too short/);
+  await assert.doesNotReject(() => encryptToken("x", "a".repeat(32)));
+});
+
 test("an empty string plaintext round trips", async () => {
   const enc = await encryptToken("", SECRET);
   const back = await decryptToken(enc, SECRET);
@@ -97,16 +104,23 @@ test("special characters in the plaintext round trip", async () => {
 });
 
 test("userIdForInstance returns a stable xentral prefixed id", async () => {
-  const a = await userIdForInstance("https://acme.xentral.biz");
-  const b = await userIdForInstance("https://acme.xentral.biz");
+  const a = await userIdForInstance("https://acme.xentral.biz", "tok-1");
+  const b = await userIdForInstance("https://acme.xentral.biz", "tok-1");
   assert.equal(a, b);
   assert.match(a, /^xentral-[0-9a-f]{32}$/);
 });
 
-test("userIdForInstance differs per host and hides the host", async () => {
-  const a = await userIdForInstance("https://acme.xentral.biz");
-  const b = await userIdForInstance("https://other.xentral.biz");
+test("userIdForInstance differs per host and hides the host and token", async () => {
+  const a = await userIdForInstance("https://acme.xentral.biz", "tok-1");
+  const b = await userIdForInstance("https://other.xentral.biz", "tok-1");
   assert.notEqual(a, b);
   assert.ok(!a.includes("acme"));
+  assert.ok(!a.includes("tok-1"));
   assert.ok(!a.includes(":"));
+});
+
+test("userIdForInstance differs per token on the same host (no grant collision)", async () => {
+  const a = await userIdForInstance("https://acme.xentral.biz", "token-a");
+  const b = await userIdForInstance("https://acme.xentral.biz", "token-b");
+  assert.notEqual(a, b);
 });

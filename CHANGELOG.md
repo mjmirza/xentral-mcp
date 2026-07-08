@@ -6,6 +6,31 @@ All notable changes to this project are recorded here. The format follows Keep a
 
 ### Added
 
+- Offers and credit note reads. Four named read tools joined, list offers, one offer, list credit notes, one credit note, bringing the set to 41. Now 26 named read tools, 12 named write tools, 2 spec inventory helpers, and 1 guarded generic request.
+- The security policy (`.github/SECURITY.md`) gained the residual DNS rebinding note for the multi tenant hosted path with its mitigation, the HKDF key derivation and 32 character minimum for the encryption key, and the per token grant keying.
+
+### Changed
+
+- Packaging trimmed to the local runtime and made platform agnostic. `agents` and `@cloudflare/workers-oauth-provider` moved from dependencies to devDependencies, so `npx xentral-mcp` installs only the MCP SDK, dotenv, and zod, with no cloud packages and no vendor lock in. The published `files` allowlist now names the local stdio subtree explicitly, so the worker, crypto, and oauth code can never ship in the npm tarball even if the build directory is polluted. The package runs locally on any OS.
+
+### Security
+
+- Token at rest key derivation hardened. The AES-256-GCM key is now derived from `TOKEN_ENCRYPTION_KEY` via HKDF-SHA-256 with a fixed salt and info label, instead of a bare SHA-256 digest, and a secret shorter than 32 characters is refused up front.
+- Hosted OAuth grants are now keyed by the instance host and a one-way token fingerprint, so two distinct tokens on the same instance get distinct grants and no longer overwrite each other.
+
+### Fixed
+
+- Response truncation is now always valid JSON. An over cap payload is reduced at whole record boundaries and carries a machine readable `_truncated` marker, instead of a JSON string cut in half that a client cannot parse.
+- The response body read is capped by streaming bytes with a running total and cancels the read the moment the cap is breached, so a chunked upstream that lies about its size cannot buffer past the 25 MB cap into memory.
+- A path passed to the generic tool that contains a query (`?`) or fragment (`#`) is now rejected with a clear message, since query parameters belong in the structured query field, not the path.
+- A 429 now honors a `Retry-After` header, seconds or HTTP date, capped at 60 seconds with jitter, instead of a fixed backoff.
+- An explicit empty string query value is now sent, a valid selector for some endpoints, while undefined and null are still dropped.
+- An empty JSON body now becomes null rather than an empty string, so a caller reasons about a clean absence.
+- The `xentral_find_endpoint` description now states that non GET methods work when writes are enabled, instead of the stale "GET only in this build".
+- The v3 pagination mode is now selectable, simple, table, or cursor, instead of hardcoded to simple.
+
+### Added (prior steps)
+
 - The tool set grew to 37. Twelve named write tools joined the reads, chosen by scouting the real Xentral connectors (the Make.com app, the n8n community node, the older n8n node), where the same write core keeps appearing, then cross checked against the bundled spec so every path is a real operation. Create sales order (import), release, send, and cancel a sales order, set product stock, record a shipment, create invoice, create credit note, create product, create customer, create purchase order, and receive goods on a purchase order. Every write tool is off by default. It returns a clear error and never calls the API unless the server starts with XENTRAL_MCP_READONLY=false. None use DELETE. Plus one named read, invoice documents from GET /api/v1/invoices/{id}/documents. Named write tools run on the local stdio server. The hosted worker keeps writes off, so the multi-tenant path stays read only.
 - One shared write gate and one shared 429 retry. The method permission policy moved from the generic tool into security.checkWritePolicy, and the rate limit retry moved into http.requestWithRateLimitRetry, so the generic passthrough and every named write tool run through the same gate and the same retry. Offline unit tests cover the gate matrix, the write tools refusing under read only and issuing the correct method and path when enabled, and the retry path. Unit cases grew to 163 with 100 percent function coverage.
 - A Nexus AI installation section in the README. A numbered offering for teams that want this set up on their own Xentral instance or extended to their exact workflow.

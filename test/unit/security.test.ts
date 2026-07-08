@@ -16,10 +16,17 @@ test("normalizePath trims whitespace before validating", () => {
   assert.equal(normalizePath("  /api/v2/products  "), "/api/v2/products");
 });
 
-test("normalizePath keeps a query string and brackets in the path", () => {
+test("normalizePath keeps brackets in the path (a bracket filter is not a query)", () => {
   assert.equal(
-    normalizePath("/api/v2/products?page[size]=10"),
-    "/api/v2/products?page[size]=10",
+    normalizePath("/api/v2/products/filter[0][key]"),
+    "/api/v2/products/filter[0][key]",
+  );
+});
+
+test("normalizePath rejects a query string in the path (query goes in the query field)", () => {
+  assert.throws(
+    () => normalizePath("/api/v2/products?page[size]=10"),
+    /query .*\?.* or fragment/i,
   );
 });
 

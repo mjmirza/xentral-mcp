@@ -16,9 +16,10 @@ Talk to your Xentral ERP in plain language from Claude and other MCP clients. As
 ## What you get
 
 - Answers from your live ERP inside your AI client. "Show me the last five sales orders" returns real rows, no tab switching.
+- Local and platform agnostic. It runs on your own machine over stdio, on macOS, Linux, or Windows, with no cloud account and no vendor lock in. The install pulls only the MCP SDK, dotenv, and zod, nothing cloud specific. A hosted deployment is an optional convenience, never a requirement.
 - Read by default, with a guarded write path. Writes are off until you turn them on, so an agent can look but changes nothing until you allow it.
 - Correct paths, not guessed ones. Every tool points at a verified endpoint from the Xentral OpenAPI specs, including the traps a naive build gets wrong (delivery notes, not the shipment level `deliveries` path).
-- Reach any of 548 operations. 37 tools cover the common cases across the order to cash and procure to pay flows plus webhooks, including named write actions for creating orders, invoices, products, customers, shipments, and goods receipts. When you need something rarer (accounting, tax, POS), the finder tool locates the exact path and a guarded generic request calls it.
+- Reach any of 548 operations. 41 tools cover the common cases across the order to cash and procure to pay flows plus webhooks, including named write actions for creating orders, invoices, products, customers, shipments, and goods receipts. When you need something rarer (accounting, tax, POS), the finder tool locates the exact path and a guarded generic request calls it.
 - Token lean output. Responses strip empty fields so a large result does not flood your context. Ask for `verbose` when you want the full payload.
 - One command setup. `xentral-mcp setup` wires your client, checks your token against the live instance, and backs up your existing config first.
 
@@ -86,7 +87,7 @@ No. Modern Xentral is cloud-only, and the only self-hostable option is OpenXE, t
 
 ## Tools in this version
 
-22 named read tools, 12 named write tools (off until you enable writes), 2 spec inventory helpers, and 1 guarded generic request. 37 in total.
+26 named read tools, 12 named write tools (off until you enable writes), 2 spec inventory helpers, and 1 guarded generic request. 41 in total.
 
 ### Read tools
 
@@ -207,7 +208,7 @@ The full posture, the threat model, encryption at rest, the SSRF and path defens
 
 ## Hosted option
 
-If you would rather not run the local stdio server, a hosted Cloudflare Worker is an alternative. It speaks the MCP Streamable HTTP transport, offers a Personal Access Token header method for direct calls, and an OAuth consent flow that signs a person in once. Both methods store the tenant token encrypted at rest with AES-256-GCM, so the raw token is never persisted. The whole hosted path is tested end to end against a real instance in the local Cloudflare runtime, both connection methods, the full OAuth flow, encryption at rest, and endpoint protection. See `docs/PROJECT_STRUCTURE.md` for the detail.
+The default and recommended way to run this is the local stdio server on your own machine, which is bound to no platform. If you would rather not run it locally, a hosted Cloudflare Worker is one alternative (the one the author uses). It speaks the MCP Streamable HTTP transport, offers a Personal Access Token header method for direct calls, and an OAuth consent flow that signs a person in once. Both methods store the tenant token encrypted at rest with AES-256-GCM, so the raw token is never persisted. The whole hosted path is tested end to end against a real instance in the local Cloudflare runtime, both connection methods, the full OAuth flow, encryption at rest, and endpoint protection. See `docs/PROJECT_STRUCTURE.md` for the detail.
 
 ## Testing
 
@@ -215,7 +216,7 @@ The test surface is stated plainly, without inflation.
 
 - Unit tests over the pure modules and the write gate, 163 cases, run with the Node built-in test runner. Function coverage is 100 percent and line coverage is 99.78 percent. The one line the tool counts as missed is a type-only declaration that carries no runtime.
 - An offline adversarial suite, 33 cases, that proves the SSRF, path, read only, and delete guards, opens and closes the write and delete paths, and shows hostile input never crashes the server or leaks the token.
-- An MCP protocol conformance suite, 7 cases, over all 37 tools.
+- An MCP protocol conformance suite, 7 cases, over all 41 tools.
 - A worker suite, 15 cases, over the crypto, the consent page, and the config helpers.
 - A live endpoint sweep that calls every one of the 194 GET operations against a real instance and reports each one. Zero client side errors were found. A handful of accounting endpoints return a server side 500 on the demo instance because that module is not provisioned there, which the sweep records as an upstream fault, not a client fault.
 - A live stress suite, 32 cases, over pagination bounds, the 100 per minute rate limit and the 429 handling, response truncation, and request timeout.
@@ -228,7 +229,7 @@ If you run Xentral and you want this connected to your own instance, or extended
 
 1. Managed install and wiring. Nexus AI connects the server to your Xentral instance, verifies the token live, and wires it into your client of choice, Claude, Cursor, or any MCP client, so your team starts asking questions on day one instead of reading setup docs.
 
-2. Custom tools for your flow. The 37 tools here are the common cases. Nexus AI adds named tools for the exact endpoints you run every day, from the 548 in the spec, with the right pagination, the right content type, and the traps handled for you.
+2. Custom tools for your flow. The 41 tools here are the common cases. Nexus AI adds named tools for the exact endpoints you run every day, from the 548 in the spec, with the right pagination, the right content type, and the traps handled for you.
 
 3. Writes turned on safely. Creating orders, invoices, shipments, and goods receipts is off by default for good reason. Nexus AI enables the write actions you actually need, behind the same read only and delete guards, with a short review of the line item replace behavior so a PATCH never drops what you meant to keep.
 

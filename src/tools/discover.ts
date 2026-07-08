@@ -62,7 +62,7 @@ export function registerDiscoverTools(server: McpServer): void {
     {
       title: "Find API endpoint",
       description:
-        "Read only. Search all 548 Xentral operations by keyword, and reach any endpoint the curated tools do not name. Matches against path, summary, tag, and operationId. Returns method, path, tag, summary, deprecated, and beta. Call the found path through xentral_request (GET only in this build).",
+        "Search all 548 Xentral operations by keyword, and reach any endpoint the curated tools do not name. Matches against path, summary, tag, and operationId. Returns method, path, tag, summary, deprecated, and beta. Call the found path through xentral_request. GET always works. POST, PATCH, and PUT work when the server runs with XENTRAL_MCP_READONLY=false, and DELETE also needs XENTRAL_MCP_ALLOW_DELETE=true.",
       inputSchema: {
         query: z
           .string()

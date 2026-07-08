@@ -52,6 +52,12 @@ export function normalizePath(input: string): string {
   if (/%2e|%2f|%5c/i.test(path) || path.includes("\\")) {
     throw new Error("Path contains an encoded traversal or separator (%2e, %2f, %5c, or a backslash).");
   }
+  // A query or fragment in the path would collide with the structured query
+  // field and build a malformed double-? URL. Query parameters go in the query
+  // argument, not the path.
+  if (path.includes("?") || path.includes("#")) {
+    throw new Error("Path must not contain a query (?) or fragment (#). Pass query parameters in the query field.");
+  }
   if (!path.startsWith("/api/")) {
     throw new Error("Path must start with /api/ (for example /api/v2/products).");
   }
