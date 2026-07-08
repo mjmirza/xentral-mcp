@@ -1,0 +1,39 @@
+{
+  // Copy this file to wrangler.jsonc and fill in your own values before deploying
+  // the hosted worker. The real wrangler.jsonc is gitignored so your account
+  // specific ids never land in the repository.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "xentral-mcp",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["XentralMCP"]
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "XENTRAL_MCP",
+        "class_name": "XentralMCP"
+      }
+    ]
+  },
+  // Create a KV namespace with `wrangler kv namespace create OAUTH_KV` and paste
+  // its id below. The AES key for PAT encryption is a secret, set it with
+  // `wrangler secret put TOKEN_ENCRYPTION_KEY`, and never commit it.
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "REPLACE_WITH_YOUR_OAUTH_KV_NAMESPACE_ID"
+    }
+  ],
+  // Optional. Add your own custom domain here, otherwise the worker deploys to
+  // your workers.dev subdomain.
+  // "routes": [ { "pattern": "mcp.example.com", "custom_domain": true } ],
+  "observability": {
+    "enabled": true
+  }
+}

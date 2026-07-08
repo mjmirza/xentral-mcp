@@ -12,3 +12,4 @@ worker-configuration.d.ts
 test/reports/
 .dev.vars
 .claude/
+wrangler.jsonc

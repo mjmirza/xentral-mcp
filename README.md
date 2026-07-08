@@ -1,5 +1,7 @@
 # xentral-mcp
 
+**English** | [Deutsch](README.de.md)
+
 Talk to your Xentral ERP in plain language from Claude and other MCP clients. Ask for a customer, a product, an open invoice, or a sales order, and get the answer back without opening the Xentral UI or writing an API call.
 
 ![License](https://img.shields.io/badge/license-source--available-blue)
