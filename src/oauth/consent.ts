@@ -195,7 +195,7 @@ export function renderConsentPage(input: ConsentPageInput): string {
       <button id="submit-btn" type="submit"><span class="spinner" aria-hidden="true"></span><span id="btn-label">Authorize</span></button>
       <p id="status" class="status" role="status" style="display:none"></p>
     </form>
-    <p class="legal">Independent tool, not affiliated with, endorsed by, or sponsored by Xentral ERP Software GmbH. Xentral&reg; is a trademark of Xentral ERP Software GmbH.</p>
+    <p class="legal">Independent tool, not affiliated with, endorsed by, or sponsored by Xentral ERP Software GmbH. Xentral&reg; is a trademark of Xentral ERP Software GmbH. To request removal of any reference, email support@next8n.com.</p>
   </main>
   ${loadingScript}
 </body>

@@ -2,6 +2,18 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog.
 
+## [0.1.8]
+
+### Added
+
+- A good-faith removal offer for rights holders. The trademark notice, the README, the OAuth consent page, and the worker health response now state that if Xentral ERP Software GmbH, or any rights holder, wants any reference to their name removed or changed, they can email support@next8n.com and it will be done promptly and in good faith. This makes the project's respect for the mark explicit and gives the owner a clear, direct channel.
+
+## [0.1.7]
+
+### Changed
+
+- Trademark protection hardened. The verified owner, Xentral ERP Software GmbH (Augsburg, confirmed from their impressum), is now named in the trademark notice, the README, the OAuth consent page, and the worker health response, instead of a vague "its owner". An explicit nominative-fair-use statement and a not-legal-advice note were added to the trademark notice, and an independence and trademark disclaimer was placed on the two surfaces a person actually sees, the OAuth consent page and the worker health response.
+
 ## [0.1.6]
 
 ### Added

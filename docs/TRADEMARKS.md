@@ -58,8 +58,17 @@ The LICENSE requires visible credit. In practice that means the following.
 Attribution is required for individual evaluation use and for any business use
 that has received written approval.
 
-## If any rights holder has a concern
+## If Xentral, or any rights holder, wants something removed
 
-If you are a rights holder and you believe something here crosses a line, contact
-the author through the channels in the [README](../README.md) and it will be
-addressed promptly and in good faith.
+This project has no wish to trade on anyone's brand. It exists to make life
+easier for people who already use Xentral, nothing more.
+
+If Xentral ERP Software GmbH, or any other rights holder, believes any use of
+their name or any other reference here crosses a line, or would simply prefer it
+removed or changed, tell us and we will remove or change it promptly and in good
+faith. No argument, no delay. We would rather take something out than cause a
+concern.
+
+Send a request by email to support@next8n.com, or reach us through next8n.com. A
+takedown or change request from a rights holder is welcome and will be actioned
+quickly.

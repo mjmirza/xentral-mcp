@@ -31,10 +31,11 @@ test("includes the nonce'd loading script, spinner, and a recovery watchdog", ()
   assert.match(html, /\}\)\(\);<\/script>/);
 });
 
-test("carries the independence and trademark disclaimer", () => {
+test("carries the independence, trademark, and removal-request disclaimer", () => {
   const html = renderConsentPage({ clientName: "x", oauthRequestB64: "q", instanceValue: "" });
   assert.match(html, /Independent tool, not affiliated/);
   assert.match(html, /Xentral&reg; is a trademark of Xentral ERP Software GmbH/);
+  assert.match(html, /To request removal of any reference, email support@next8n\.com/);
 });
 
 test("omits the script entirely when no nonce is given (still a working plain form)", () => {
