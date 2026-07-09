@@ -2,11 +2,11 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog.
 
-## [0.1.5]
+## [0.1.6]
 
 ### Added
 
-- A connector icon. The server now advertises an icon in its MCP initialize response (`serverInfo.icons`, the spec mechanism), and the hosted worker serves the same image at `/icon.png` and `/favicon.ico` so a client that reads the site favicon picks it up too. The icon is embedded as a self-contained PNG data URI, so it needs no hosting and a self-hosted worker shows it as well. The serverInfo also carries a `title`, `description`, and `websiteUrl`. Whether a given client renders the icon depends on that client's support, but every server-side path is now wired. The npm README shows the logo via an absolute raster PNG URL, because npm does not render SVG. Regenerate the icon assets from the source art with `node tools/gen-icon.mjs`.
+- A connector icon. The server advertises it in its MCP initialize response (`serverInfo.icons`, the spec mechanism), verified over the wire, and the hosted worker serves the same image at `/icon.png` and `/favicon.ico` so a client that reads the site favicon picks it up too. The icon is an original mark (a small node linked to a larger node, in the brand green), not a third-party logo, so there is no trademark question, and it is embedded as a self-contained PNG data URI so it needs no hosting and a self-hosted worker shows it as well. The serverInfo also carries a `title`, `description`, and `websiteUrl`. Whether a given client renders the icon depends on that client's support, but every server-side path is now wired. The npm README shows the mark via an absolute raster PNG URL, because npm does not render SVG. Regenerate the assets from `assets/icon.svg` with `node tools/gen-icon.mjs`.
 
 ## [0.1.4]
 

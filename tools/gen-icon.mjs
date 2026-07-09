@@ -1,5 +1,5 @@
 // Regenerate the connector icon assets and src/icon.ts from the source art.
-// Run after changing assets/xentral.svg:  node tools/gen-icon.mjs
+// Run after changing assets/icon.svg:  node tools/gen-icon.mjs
 //
 // Produces a 256px PNG (assets/xentral-icon.png, referenced by the README raw
 // URL because npm does not render SVG) and a 128px PNG embedded into src/icon.ts
@@ -7,7 +7,7 @@
 import sharp from "sharp";
 import { readFileSync, writeFileSync } from "node:fs";
 
-const svg = readFileSync("assets/xentral.svg");
+const svg = readFileSync("assets/icon.svg");
 const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
 
 await sharp(svg, { density: 400 })
@@ -26,7 +26,7 @@ const ts = `/**
  * The xentral-mcp connector icon, shared by the stdio bin, the hosted worker,
  * and the pages so there is one icon everywhere.
  *
- * The source art is the logo at assets/xentral.svg. This file embeds a 128x128
+ * The source art is the logo at assets/icon.svg. This file embeds a 128x128
  * PNG render of it as a data URI, so the icon needs no hosting, ships inside the
  * package, and does not depend on any domain (a self-hosted worker still shows
  * it). The npm README references the raster PNG by an absolute raw URL, because

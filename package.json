@@ -1,6 +1,6 @@
 {
   "name": "xentral-mcp",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Model Context Protocol server for the Xentral ERP API. Runs locally over stdio on any platform, with no cloud dependency. Read-only by default, opt-in writes.",
   "type": "module",
   "bin": {
