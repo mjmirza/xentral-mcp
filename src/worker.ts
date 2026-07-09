@@ -39,6 +39,7 @@ import { decryptToken, encryptToken } from "./crypto.js";
 import { handleAuthorizeGet, handleAuthorizePost } from "./oauth/authorize.js";
 // COMMENT_REMOVAL_OK version now lives in one place, version.ts, shared with the bin.
 import { VERSION } from "./version.js";
+import { serverIcons, iconPngBytes } from "./icon.js";
 
 /**
  * Per session credentials carried on the execution context props.
@@ -67,7 +68,14 @@ const DIRECT_HEADERS = {
  * method), builds a XentralConfig, and registers the shared tools.
  */
 export class XentralMCP extends McpAgent<Env, unknown, Props> {
-  server = new McpServer({ name: "xentral", version: VERSION });
+  server = new McpServer({
+    name: "xentral-mcp",
+    title: "Xentral MCP",
+    version: VERSION,
+    description: "Read your Xentral ERP from your AI client.",
+    websiteUrl: "https://github.com/mjmirza/xentral-mcp",
+    icons: serverIcons(),
+  });
 
   async init(): Promise<void> {
     const props = this.props;
@@ -147,6 +155,14 @@ const defaultHandler = {
 
     if (request.method === "GET" && (url.pathname === "/" || url.pathname === "")) {
       return healthResponse();
+    }
+
+    // The connector icon, served as a PNG, plus a favicon at the well-known path
+    // so a client that derives an icon from the site favicon picks it up too.
+    if (request.method === "GET" && (url.pathname === "/icon.png" || url.pathname === "/favicon.ico" || url.pathname === "/favicon.png")) {
+      return new Response(iconPngBytes(), {
+        headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" },
+      });
     }
 
     if (url.pathname === "/authorize") {

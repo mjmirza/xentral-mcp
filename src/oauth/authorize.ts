@@ -77,7 +77,7 @@ function htmlResponse(body: string, status = 200, nonce = ""): Response {
       // silently blocks the submission in the browser, which is why the page
       // appeared to hang. Allowing https keeps http and other schemes blocked.
       "Content-Security-Policy":
-        `default-src 'none'; style-src 'unsafe-inline';${scriptSrc} form-action 'self' https:; frame-ancestors 'none'; base-uri 'none'`,
+        `default-src 'none'; style-src 'unsafe-inline'; img-src 'self';${scriptSrc} form-action 'self' https:; frame-ancestors 'none'; base-uri 'none'`,
       "X-Frame-Options": "DENY",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "no-referrer",

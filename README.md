@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/mjmirza/xentral-mcp/main/assets/xentral-icon.png" width="96" height="96" alt="xentral-mcp" />
+</p>
+
 # xentral-mcp
 
 Talk to your Xentral ERP in plain language from Claude and other MCP clients. Ask for a customer, a product, an open invoice, or a sales order, and get the answer back without opening the Xentral UI or writing an API call.

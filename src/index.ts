@@ -17,6 +17,7 @@ import { runDoctor } from "./setup/doctor.js";
 import { maybeNotifyUpdate } from "./setup/update-check.js";
 // COMMENT_REMOVAL_OK the version is no longer pinned here, it moved to version.ts.
 import { VERSION } from "./version.js";
+import { serverIcons } from "./icon.js";
 
 function printHelp(): void {
   process.stdout.write(
@@ -61,7 +62,14 @@ async function runServer(): Promise<void> {
     return;
   }
 
-  const server = new McpServer({ name: "xentral-mcp", version: VERSION });
+  const server = new McpServer({
+    name: "xentral-mcp",
+    title: "Xentral MCP",
+    version: VERSION,
+    description: "Read your Xentral ERP from your AI client.",
+    websiteUrl: "https://github.com/mjmirza/xentral-mcp",
+    icons: serverIcons(),
+  });
   registerXentralTools(server, cfg);
 
   const transport = new StdioServerTransport();
