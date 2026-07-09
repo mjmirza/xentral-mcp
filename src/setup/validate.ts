@@ -22,7 +22,9 @@ export interface ValidationResult {
 // The probe must carry page[number] and page[size] together, and the size must
 // be at least 10, or the API returns a 400 rather than proving reachability.
 const PROBE_PATH = "/api/v2/products?page[number]=1&page[size]=10";
-const PROBE_TIMEOUT_MS = 12000;
+// A snappy timeout so a slow or wrong host fails fast with a clear message on the
+// consent page, rather than leaving the person waiting.
+const PROBE_TIMEOUT_MS = 8000;
 
 /**
  * Probe the instance with the given token. A 200 or 404 both prove the host
@@ -45,11 +47,13 @@ export async function validateToken(baseUrl: string, token: string): Promise<Val
   } catch (err) {
     const name = err instanceof Error ? err.name : "Error";
     if (name === "TimeoutError" || name === "AbortError") {
-      return { outcome: "timeout", message: "The instance did not respond in time. Check the host URL." };
+      return { outcome: "timeout", message: "The instance did not respond in time. Check the host is correct and reachable." };
     }
+    // Neutral wording. Each caller (the CLI wizard, doctor, and the hosted
+    // consent page) adds its own context, so this message stays true everywhere.
     return {
       outcome: "offline",
-      message: "Could not reach the instance. Saved the config anyway. Run `xentral-mcp doctor` when online.",
+      message: "Could not reach the instance. Check the host is correct and reachable.",
     };
   }
 
@@ -57,13 +61,13 @@ export async function validateToken(baseUrl: string, token: string): Promise<Val
     return { outcome: "valid", message: "Token verified against the live instance.", status: 200 };
   }
   if (res.status === 404) {
-    return { outcome: "valid", message: "Host and token reach the API. The probe resource was not found, which is fine.", status: 404 };
+    return { outcome: "valid", message: "The host and token reach the API. The test read was not found, which is fine.", status: 404 };
   }
   if (res.status === 401) {
-    return { outcome: "unauthorized", message: "The token was rejected (401). Create a new Personal Access Token.", status: 401 };
+    return { outcome: "unauthorized", message: "The token was rejected (401). Create a new Personal Access Token in Xentral.", status: 401 };
   }
   if (res.status === 403) {
-    return { outcome: "forbidden", message: "The token lacks permission for the probe (403). It may still work for other reads.", status: 403 };
+    return { outcome: "forbidden", message: "The token was accepted but lacks permission for the test read (403). It may still work for other reads.", status: 403 };
   }
-  return { outcome: "error", message: `Unexpected status ${res.status} from the probe.`, status: res.status };
+  return { outcome: "error", message: `The instance returned an unexpected status (${res.status}). Check the host and try again.`, status: res.status };
 }

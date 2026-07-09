@@ -67,11 +67,17 @@ function htmlResponse(body: string, status = 200, nonce = ""): Response {
     status,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      // Enterprise-grade page hardening for the consent and authorize surface.
-      // Inline style only, plus one nonce'd loading script. No framing, and a
-      // self-only form post, which closes clickjacking and injection.
+      // Page hardening for the consent and authorize surface. Inline style only,
+      // plus one nonce'd loading script, no framing.
+      //
+      // form-action must allow https, not only 'self'. The browser applies
+      // form-action to the whole submission chain including redirects, and a
+      // successful authorize 302-redirects the form post to the OAuth client's
+      // own https callback (for example claude.ai). Restricting it to 'self'
+      // silently blocks the submission in the browser, which is why the page
+      // appeared to hang. Allowing https keeps http and other schemes blocked.
       "Content-Security-Policy":
-        `default-src 'none'; style-src 'unsafe-inline';${scriptSrc} form-action 'self'; frame-ancestors 'none'; base-uri 'none'`,
+        `default-src 'none'; style-src 'unsafe-inline';${scriptSrc} form-action 'self' https:; frame-ancestors 'none'; base-uri 'none'`,
       "X-Frame-Options": "DENY",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "no-referrer",

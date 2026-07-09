@@ -129,6 +129,15 @@ const STYLE = `
   @media (prefers-reduced-motion: reduce) {
     button.loading .spinner { animation: none; }
   }
+  .status {
+    font-size: 13px;
+    color: #8a5a1f;
+    background: #fdf3e6;
+    border: 1px solid #f2ddc0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 14px 0 0;
+  }
 `;
 
 /**
@@ -148,7 +157,7 @@ export function renderConsentPage(input: ConsentPageInput): string {
   // omitted, and the form still works as a plain post, just with no spinner.
   const nonce = input.nonce ? escapeHtml(input.nonce) : "";
   const loadingScript = nonce
-    ? `<script nonce="${nonce}">(function(){var f=document.getElementById('consent-form');var b=document.getElementById('submit-btn');if(!f||!b)return;f.addEventListener('submit',function(){if(b.dataset.sent==='1'){return;}b.dataset.sent='1';b.disabled=true;b.classList.add('loading');var l=document.getElementById('btn-label');if(l){l.textContent='Verifying your token';}});})();</script>`
+    ? `<script nonce="${nonce}">(function(){var f=document.getElementById('consent-form');var b=document.getElementById('submit-btn');if(!f||!b)return;f.addEventListener('submit',function(){if(b.dataset.sent==='1'){return;}b.dataset.sent='1';b.disabled=true;b.classList.add('loading');var l=document.getElementById('btn-label');if(l){l.textContent='Verifying your token';}setTimeout(function(){b.dataset.sent='';b.disabled=false;b.classList.remove('loading');if(l){l.textContent='Authorize';}var s=document.getElementById('status');if(s){s.textContent='This is taking longer than expected. Check your network, a VPN, or a firewall, then try Authorize again.';s.style.display='block';}},20000);});})();</script>`
     : "";
 
   return `<!doctype html>
@@ -176,6 +185,7 @@ export function renderConsentPage(input: ConsentPageInput): string {
         Your token is verified once, then stored encrypted at rest and used only to call your own Xentral. It is not shared and it is never combined with other accounts. Remove access at any time by revoking this authorization in your client and deleting the token in your Xentral admin.
       </div>
       <button id="submit-btn" type="submit"><span class="spinner" aria-hidden="true"></span><span id="btn-label">Authorize</span></button>
+      <p id="status" class="status" role="status" style="display:none"></p>
     </form>
   </main>
   ${loadingScript}

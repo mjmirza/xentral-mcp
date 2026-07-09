@@ -129,6 +129,9 @@ function healthResponse(): Response {
     },
     revoke:
       "Revoke the authorization in your MCP client to delete the stored grant and its encrypted token, then delete the Personal Access Token in your Xentral admin.",
+  }, {
+    // No caching, so the reported version and status are always live.
+    headers: { "Cache-Control": "no-store" },
   });
 }
 

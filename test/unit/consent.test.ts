@@ -17,12 +17,16 @@ test("renders the form, the carried request, and the prefilled host", () => {
   assert.match(html, />Claude</);
 });
 
-test("includes the nonce'd loading script and spinner when a nonce is given", () => {
+test("includes the nonce'd loading script, spinner, and a recovery watchdog", () => {
   const html = renderConsentPage({ clientName: "x", oauthRequestB64: "q", instanceValue: "", nonce: "N123" });
   assert.match(html, /<script nonce="N123">/);
   assert.match(html, /addEventListener\('submit'/);
   assert.match(html, /class="spinner"/);
   assert.match(html, /id="submit-btn"/);
+  // The watchdog re-enables the button so the spinner can never run forever.
+  assert.match(html, /setTimeout\(/);
+  assert.match(html, /id="status"/);
+  assert.match(html, /taking longer than expected/);
   // The IIFE is actually invoked, not just defined.
   assert.match(html, /\}\)\(\);<\/script>/);
 });

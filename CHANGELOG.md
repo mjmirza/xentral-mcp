@@ -2,6 +2,18 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog.
 
+## [0.1.4]
+
+### Fixed
+
+- The consent page appeared to hang on Authorize (the spinner never resolved). The real cause was our own Content-Security-Policy. `form-action 'self'` also governs the redirect that follows a form submission, and a successful authorize 302-redirects the post to the OAuth client's own callback (for example claude.ai), which is not 'self', so the browser silently blocked the whole submission before it left the page. The earlier server-side tests passed because they bypassed CSP. Fixed by allowing `form-action 'self' https:`, which permits the redirect to the client's https callback while still blocking http and other schemes.
+- The token validator's messages were CLI-specific and leaked into the hosted consent page, for example "Saved the config anyway. Run xentral-mcp doctor when online", which makes no sense on a web page, plus internal "probe" wording. The messages are now context-free and the CLI wizard adds its own offline follow-up. The live check timeout dropped from 12s to 8s so a slow or wrong host fails fast with a clear message.
+
+### Added
+
+- A recovery watchdog on the consent page. If a submission does not resolve within 20 seconds (a proxy or firewall dropping the response, say), the button re-enables and a clear message asks the person to check their network and try again, so the spinner can never run forever.
+- The hosted health endpoint now sends `Cache-Control: no-store`, so the reported version and status are always live rather than an edge-cached value.
+
 ## [0.1.3]
 
 ### Fixed

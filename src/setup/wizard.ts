@@ -184,6 +184,10 @@ export async function runSetup(argv: string[]): Promise<number> {
       log("Setup stopped. The token was rejected. Create a fresh token and run setup again.");
       return 1;
     }
+    if (result.outcome === "offline" || result.outcome === "timeout") {
+      // The shared message is context free, so add the CLI-specific follow-up.
+      log("  The config will still be saved. Run `xentral-mcp doctor` when you are back online.");
+    }
   }
 
   // Print only mode. Show the block and stop.
