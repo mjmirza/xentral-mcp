@@ -258,4 +258,4 @@ Source-available under the [Xentral-MCP Source-Available License](LICENSE). This
 - Credit is mandatory in every use. Keep the copyright line and the notices intact.
 - Provided as is, with no warranty and no liability. You run it at your own risk, and every action an agent takes against your data is your responsibility.
 
-"Xentral" is a trademark of its owner. This project is independent, unofficial, and not endorsed by Xentral. See [trademarks and attribution](docs/TRADEMARKS.md).
+Xentral&reg; is a trademark of Xentral ERP Software GmbH. This project is independent and unofficial, is not affiliated with, endorsed by, or sponsored by Xentral ERP Software GmbH, and uses the name only nominatively to state API compatibility. See [trademarks and attribution](docs/TRADEMARKS.md).

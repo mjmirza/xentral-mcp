@@ -138,6 +138,13 @@ const STYLE = `
     padding: 10px 12px;
     margin: 14px 0 0;
   }
+  .legal {
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: #8a929b;
+    margin: 18px 0 0;
+    text-align: center;
+  }
 `;
 
 /**
@@ -188,6 +195,7 @@ export function renderConsentPage(input: ConsentPageInput): string {
       <button id="submit-btn" type="submit"><span class="spinner" aria-hidden="true"></span><span id="btn-label">Authorize</span></button>
       <p id="status" class="status" role="status" style="display:none"></p>
     </form>
+    <p class="legal">Independent tool, not affiliated with, endorsed by, or sponsored by Xentral ERP Software GmbH. Xentral&reg; is a trademark of Xentral ERP Software GmbH.</p>
   </main>
   ${loadingScript}
 </body>

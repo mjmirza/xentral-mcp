@@ -137,6 +137,8 @@ function healthResponse(): Response {
     },
     revoke:
       "Revoke the authorization in your MCP client to delete the stored grant and its encrypted token, then delete the Personal Access Token in your Xentral admin.",
+    disclaimer:
+      "Independent, unofficial connector. Not affiliated with, endorsed by, or sponsored by Xentral ERP Software GmbH. Xentral is a trademark of Xentral ERP Software GmbH, used nominatively to state API compatibility only.",
   }, {
     // No caching, so the reported version and status are always live.
     headers: { "Cache-Control": "no-store" },

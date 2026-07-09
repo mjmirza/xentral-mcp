@@ -31,6 +31,12 @@ test("includes the nonce'd loading script, spinner, and a recovery watchdog", ()
   assert.match(html, /\}\)\(\);<\/script>/);
 });
 
+test("carries the independence and trademark disclaimer", () => {
+  const html = renderConsentPage({ clientName: "x", oauthRequestB64: "q", instanceValue: "" });
+  assert.match(html, /Independent tool, not affiliated/);
+  assert.match(html, /Xentral&reg; is a trademark of Xentral ERP Software GmbH/);
+});
+
 test("omits the script entirely when no nonce is given (still a working plain form)", () => {
   const html = renderConsentPage({ clientName: "x", oauthRequestB64: "q", instanceValue: "" });
   assert.ok(!html.includes("<script"), "no script tag without a nonce");
