@@ -4,6 +4,8 @@
 
 # xentral-mcp
 
+[![OpenRoots ORA 2.3](https://openroots.org/badge/ora.svg)](https://openroots.org/licenses/ora/2.3)
+
 Talk to your Xentral ERP in plain language from Claude and other MCP clients. Ask for a customer, a product, an open invoice, or a sales order, and get the answer back without opening the Xentral UI or writing an API call.
 
 ![License](https://img.shields.io/badge/license-source--available-blue)
