@@ -2,6 +2,12 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog.
 
+## [0.1.9]
+
+### Security
+
+- MCP SDK floor raised to 1.32.1 and the shipped-package advisories patched. `@cloudflare/workers-types` moves to 5 to match current wrangler. No behaviour change.
+
 ## [0.1.8]
 
 ### Added
